@@ -319,11 +319,13 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-sdk android:minSdkVersion=\"${GEN_ANDROID_MIN_SDK_CLEAN}\" android:targetSdkVersion=\"${GEN_ANDROID_TARGET_SDK_CLEAN}\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-feature android:glEsVersion=\"0x00020000\" android:required=\"false\" />\n")
 
-    # Network permissions required by GEN XTrace/DIO UDP/TCP code.
-    # The Android manifest in assets/package may contain these permissions, but the
-    # generated APK manifest is written here from scratch, so they must be emitted here too.
+    # Network permissions required by GEN XTrace/DIO UDP/TCP and examples such as UI_System
+    # (internet check, public IP HTTP, local iface enum, Wi-Fi link state). The assets/package
+    # AndroidManifest may list these too, but the generated APK manifest is written here from
+    # scratch, so they must be emitted here as well.
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.INTERNET\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />\n")
+    file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.CHANGE_WIFI_MULTICAST_STATE\" />\n")
     if(GEN_ANDROID_TARGET_SDK_CLEAN GREATER_EQUAL 33)
       file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.NEARBY_WIFI_DEVICES\" android:usesPermissionFlags=\"neverForLocation\" />\n")

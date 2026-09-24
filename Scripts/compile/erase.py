@@ -15,7 +15,6 @@ from internal.shared import (
     cancellation_requested,
     classify_arguments,
     compute_tool_paths,
-    current_so_path,
     load_listapp,
     run_command,
     select_app_entries,
@@ -23,7 +22,16 @@ from internal.shared import (
     stop_keyboard_cancel_monitor,
 )
 
-PLATFORM_VALUES = {'INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64'}
+# Every build output root compile.py can produce. Native targets land under
+# 'Windows' or 'Linux' depending on which host built them (INTEL64, for
+# instance, can exist under both), while every Android target always lands
+# under 'Android' regardless of the build host (see
+# internal.shared.target_so_path). Erase must check all three roots so it
+# removes everything assigned to a platform no matter where it was built or
+# where erase.py itself is being run from.
+BUILD_ROOTS = ('Windows', 'Linux', 'Android')
+
+PLATFORM_VALUES = {'INTEL32', 'INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64', 'ANDROID32', 'ANDROID64'}
 MODE_VALUES = {'DEBUG', 'RELEASE'}
 
 
@@ -46,7 +54,6 @@ def main(argv: list[str] | None = None) -> int:
             settings['PATHLISTAPP'] = f"{settings['PATHLISTAPP']}{os.sep}"
 
         in_container = settings.get('IN_CONTAINER', '0') == '1'
-        so_path = current_so_path(in_container)
         _, filelistapp, outfile = compute_tool_paths(settings['PATHLISTAPP'], settings['LISTAPP'], in_container, settings['DOCKERDOMAIN'])
         if not filelistapp.exists():
             print(f'[Error] FILELISTAPP not found: {filelistapp}')
@@ -65,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         allplatforms = not platforms
         allmodes = not modes
         if not platforms:
-            platforms = ['INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64']
+            platforms = ['INTEL32', 'INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64', 'ANDROID32', 'ANDROID64']
         if not modes:
             modes = ['DEBUG', 'RELEASE']
 
@@ -87,7 +94,6 @@ def main(argv: list[str] | None = None) -> int:
                 cmake_directory = entry.absolute_path / 'CMake'
                 vs_directory = cmake_directory / '.vs'
                 vscode_directory = cmake_directory / '.vscode'
-                build_root = cmake_directory / 'Build' / so_path
                 if vs_directory.exists():
                     removed_items.append('.vs')
                     shutil.rmtree(vs_directory)
@@ -95,33 +101,36 @@ def main(argv: list[str] | None = None) -> int:
                     removed_items.append('.vscode')
                     shutil.rmtree(vscode_directory)
                 if allplatforms:
-                    if build_root.exists():
-                        removed_items.append(so_path)
-                        shutil.rmtree(build_root)
-                    # Android cross-builds live in a sibling 'Android' folder
-                    # (named after the target OS, not the build host), so a full
-                    # erase must clean it too.
-                    android_build_root = cmake_directory / 'Build' / 'Android'
-                    if android_build_root != build_root and android_build_root.exists():
-                        removed_items.append('Android')
-                        shutil.rmtree(android_build_root)
+                    # No platform was requested: wipe every build root
+                    # (Windows/Linux/Android) regardless of which one matches
+                    # the host erase.py is running on.
+                    for so_name in BUILD_ROOTS:
+                        so_root = cmake_directory / 'Build' / so_name
+                        if so_root.exists():
+                            removed_items.append(so_name)
+                            shutil.rmtree(so_root)
                 else:
                     for platform_name in platforms:
                         if cancellation_requested():
                             return cancellation_exit_code()
-                        platform_directory = build_root / platform_name.lower()
-                        if allmodes:
-                            if platform_directory.exists():
-                                removed_items.append(platform_name.lower())
-                                shutil.rmtree(platform_directory)
-                        else:
-                            for mode_name in modes:
-                                if cancellation_requested():
-                                    return cancellation_exit_code()
-                                target_directory = platform_directory / mode_name.lower()
-                                if target_directory.exists():
-                                    removed_items.append(f'{platform_name.lower()}/{mode_name.lower()}')
-                                    shutil.rmtree(target_directory)
+                        # A given platform can have been built under more than
+                        # one root (e.g. INTEL64 under both Windows and
+                        # Linux), so check every root instead of assuming the
+                        # current host's.
+                        for so_name in BUILD_ROOTS:
+                            platform_directory = cmake_directory / 'Build' / so_name / platform_name.lower()
+                            if allmodes:
+                                if platform_directory.exists():
+                                    removed_items.append(f'{so_name}/{platform_name.lower()}')
+                                    shutil.rmtree(platform_directory)
+                            else:
+                                for mode_name in modes:
+                                    if cancellation_requested():
+                                        return cancellation_exit_code()
+                                    target_directory = platform_directory / mode_name.lower()
+                                    if target_directory.exists():
+                                        removed_items.append(f'{so_name}/{platform_name.lower()}/{mode_name.lower()}')
+                                        shutil.rmtree(target_directory)
                 print(f"Erase build : {entry.name:<20} [ {' '.join(removed_items)} ]")
         else:
             docker_ids_output = subprocess.run(['docker', 'ps', '-aq'], capture_output=True, text=True, check=False)

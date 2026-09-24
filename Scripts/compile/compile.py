@@ -353,7 +353,14 @@ def run_compile_stage(
     elif stage == 'COMPILE':
         command = ['ninja']
         action_text = 'Compilate project'
-    elif stage == 'TEST' and app_entry.name.endswith('_unittests') and target == 'INTEL64':
+    elif stage == 'TEST' and app_entry.name.startswith('unittests_') and target in {'INTEL32', 'INTEL64'}:
+        # TEST only ever runs for unittests_* apps on INTEL32/INTEL64, in
+        # DEBUG and RELEASE. Windows-only platforms (ANDROID32/64) and
+        # Linux-only platforms (ARM32/ARM64/RPI32/RPI64) never reach here
+        # because supported_platform_values()/validate_variation_params()
+        # already restrict `platforms` to the current host's list, so
+        # INTEL32 (Windows-only) is simply absent from the loop when
+        # running on Linux, and vice versa for the Linux-only platforms.
         command = select_test_executable(build_dir, app_entry.name)
         action_text = 'Test project'
     else:
@@ -528,8 +535,13 @@ def main(argv: list[str] | None = None) -> int:
                                 return cancellation_exit_code()
                             if not entry.supports_target(platform_name):
                                 skip_line = build_stage_prefix(platform_name, mode_name, f'Skip {stage}', entry.name) + '[Unsupported target]'
-                                print(skip_line)
                                 write_log_line(outfile, skip_line)
+                                if stage != 'TEST':
+                                    # In the TEST stage, only applications that
+                                    # actually run a test should be printed;
+                                    # skipped apps still get logged to outfile
+                                    # but stay out of the console.
+                                    print(skip_line)
                                 continue
                             returncode, warning_count = run_compile_stage(stage, platform_name, mode_name, entry, so_path, settings, outfile, common_root, platform_environment)
                             if stage == 'COMPILE' and warning_count > 0:

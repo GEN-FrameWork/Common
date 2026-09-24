@@ -1,0 +1,37 @@
+ARG IMAGEBASE
+FROM ${IMAGEBASE:-debian}
+
+ARG TARGET=INTEL64
+ENV TARGET=${TARGET}
+
+ARG TARGET_LOWERCASE=intel64
+ENV TARGET_LOWERCASE=${TARGET_LOWERCASE}
+
+ARG COMPILED_MODE
+ENV COMPILED_MODE=${COMPILED_MODE}
+
+ARG APPPATH
+ENV APPPATH=${APPPATH}
+
+ARG APPNAME
+ENV APPNAME=${APPNAME}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash \
+  libstdc++6 \
+  libc6 \
+  libatomic1 \
+  libasound2t64 \
+  libx11-6 \
+  libxext6 \
+  libxrandr2 \
+  libxxf86vm1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY ${APPPATH}/CMake/Build/Linux/${TARGET_LOWERCASE}/${COMPILED_MODE}/${APPNAME} .
+COPY ${APPPATH}/assets .
+
+CMD ["sh", "-c", "./${APPNAME}"]

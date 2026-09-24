@@ -393,7 +393,8 @@ def run_command(
 
 
 def build_stage_prefix(target: str, debug_value: str, action_text: str, app_name: str) -> str:
-    return f'{target:<10} {debug_value:<10} {action_text:<24} {app_name:<22} ... '
+    # app_name width must fit longest entry (e.g. unittests_userinterface = 23).
+    return f'{target:<10} {debug_value:<10} {action_text:<24} {app_name:<24} ... '
 
 
 def build_stage_result_suffix(ok: bool, operation_start: float) -> str:

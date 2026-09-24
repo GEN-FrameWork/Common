@@ -179,34 +179,7 @@ if(APPFLOW_FEATURE)
    option(APPFLOW_CFG_LOG_FEATURE                               "Application Flow CFG LOG"                                ON ) 
    
   endif()
-
-
-  if(APPFLOW_GRAPHICS_FEATURE) 
-
-    add_definitions(-DAPPFLOW_GRAPHICS_ACTIVE)
-
-    option(XFSMACHINE_FEATURE                                   "XFSMachine"                                              ON )
-    option(GRP_FEATURE                                          "Graphics"                                                ON )
-    option(GRP_2D_FEATURE                                       "Graphics 2D"                                             ON )
-    option(APPFLOW_CONSOLE_FEATURE                              "Application Flow Console"                                ON ) 
-  
-  endif()
-
- 
-  if(APPFLOW_GRAPHICS_NOTCONSOLE_FEATURE)
-
-    add_definitions(-DAPPFLOW_GRAPHICS_NOTCONSOLE_ACTIVE)
-
-  endif()
-
-
-  if(APPFLOW_CONSOLE_FEATURE)
-    
-    add_definitions(-DAPPFLOW_CONSOLE_ACTIVE) 
-    option(XCONSOLE_FEATURE                                     "Console functions"                                       ON )
-  
-  endif()
-               
+              
   
   if(APPFLOW_CHECKRESOURCESHARDWARE_FEATURE)
 
@@ -257,6 +230,33 @@ if(APPFLOW_FEATURE)
 
     add_definitions(-DAPPFLOW_ALERTS_ACTIVE)
 
+  endif()
+  
+  
+  if(APPFLOW_GRAPHICS_FEATURE) 
+
+    add_definitions(-DAPPFLOW_GRAPHICS_ACTIVE)
+
+    option(XFSMACHINE_FEATURE                                   "XFSMachine"                                              ON )
+    option(GRP_FEATURE                                          "Graphics"                                                ON )
+    option(GRP_2D_FEATURE                                       "Graphics 2D"                                             ON )
+    option(APPFLOW_CONSOLE_FEATURE                              "Application Flow Console"                                ON ) 
+  
+  endif()
+
+ 
+  if(APPFLOW_GRAPHICS_NOTCONSOLE_FEATURE)
+
+    add_definitions(-DAPPFLOW_GRAPHICS_NOTCONSOLE_ACTIVE)
+
+  endif()
+
+
+  if(APPFLOW_CONSOLE_FEATURE)
+    
+    add_definitions(-DAPPFLOW_CONSOLE_ACTIVE) 
+    option(XCONSOLE_FEATURE                                     "Console functions"                                       ON )
+  
   endif()
 
 
@@ -1189,10 +1189,6 @@ if(DIO_FEATURE)
   
   endif() 
   
-  
-  # TLS 1.2 is an independent client compatibility feature.  Declare it
-  # before the TLS dependency block so it can also be enabled when the TLS
-  # 1.3 transport is disabled.
   option(DIO_STREAMTLS12_FEATURE                                "TLS 1.2 (RFC 5246)"                                      ON )
 
   if(DIO_STREAMTLS_FEATURE OR DIO_STREAMTLS12_FEATURE) 
@@ -1584,9 +1580,27 @@ if(XTHREADCOLLECTED_FEATURE)
 endif()
 
 
+if(XASN1_FEATURE)
+
+  add_definitions(-DXASN1_ACTIVE)
+
+  option(XBER_FEATURE                                             "XBER format"                                             ON )    
+
+endif()
+
+
+if(XBER_FEATURE)
+
+  add_definitions(-DXBER_ACTIVE)
+
+endif()
+
+
 if(XSERIALIZABLE_BINARY_FEATURE)
 
   add_definitions(-DXSERIALIZABLE_BINARY_ACTIVE)
+  
+  option(XSERIALIZABLE_FEATURE                                    "Serializable functions"                                  ON )
   
 endif()
 
@@ -1595,6 +1609,15 @@ if(XSERIALIZABLE_JSON_FEATURE)
 
   add_definitions(-DXSERIALIZABLE_JSON_ACTIVE)
   
+  option(XSERIALIZABLE_FEATURE                                    "Serializable functions"                                  ON )
+  
+endif()
+
+
+if(XSERIALIZABLE)
+
+  add_definitions(-DXSERIALIZABLE_ACTIVE)
+
 endif()
 
 
@@ -1746,6 +1769,15 @@ endif()
 if(XFILE_JSON_FEATURE)    
   
   add_definitions(-DXFILE_JSON_ACTIVE)  
+  
+  option(XFILE_TXT_FEATURE                                        "XFile Text format"                                       ON )
+  
+endif() 
+
+
+if(XFILE_CSV_FEATURE)    
+  
+  add_definitions(-DXFILE_CSV_ACTIVE)  
   
   option(XFILE_TXT_FEATURE                                        "XFile Text format"                                       ON )
   
@@ -1969,12 +2001,6 @@ if(CIPHER_ASYMMETRIC_FEATURE)
   if(CIPHER_ASYMMETRIC_RSA_FEATURE)
 
     add_definitions(-DCIPHER_ASYMMETRIC_RSA_ACTIVE)
- 
-    if(CIPHER_ASYMMETRIC_FILEKEY_GFK)
-  
-      add_definitions(-DCIPHER_ASYMMETRIC_FILEKEY_GFK_ACTIVE)
-	
-    endif()
 
     if(CIPHER_ASYMMETRIC_FILEKEY_PEM)
   
