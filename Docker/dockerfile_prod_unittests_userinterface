@@ -21,7 +21,11 @@ RUN apt-get update && \
   libstdc++6 \
   libc6 \
   libatomic1 \
-  libasound2t64 && \
+  libasound2t64 \
+  libx11-6 \
+  libxext6 \
+  libxrandr2 \
+  libxxf86vm1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
