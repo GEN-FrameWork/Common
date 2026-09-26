@@ -64,7 +64,6 @@ if(COMPILE_FOR_WINDOWS)
 
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wlanapi)
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS ole32.lib)
-    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS rpcrt4.lib)
 
   endif()
 
@@ -117,6 +116,8 @@ if(COMPILE_FOR_WINDOWS)
   
   if(SND_FEATURE)      
 
+    # winmm: ICMP timing (timeBeginPeriod) and OpenAL Soft WASAPI path may need it.
+    # avrt: required by OpenAL Soft WASAPI (AvSetMmThreadCharacteristics*).
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS winmm.lib)
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS avrt.lib)
 
@@ -130,14 +131,6 @@ if(COMPILE_FOR_WINDOWS)
   endif()
 
 
-endif()
-
-# The Windows X.509 trust provider uses CryptoAPI. WIN32 is the canonical CMake
-# platform predicate and also covers project configurations that do not export
-# the legacy COMPILE_FOR_WINDOWS variable into this include scope.
-if(WIN32)
-  list(APPEND GEN_SO_THIRDPARTY_LIBRARYS crypt32)
-  list(APPEND GEN_SO_THIRDPARTY_LIBRARYS normaliz)
 endif()
 
 
@@ -211,17 +204,17 @@ if(COMPILE_FOR_LINUX)
 
     if(LINUX_X11_FEATURE)
 
+      # XSync used by GRPLINUXScreenX11 is Xlib (libX11), not libXext.
+      # XF86VidMode / Xext APIs are not called by GEN.
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS X11)
-      list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xext)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xrandr)
-      list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xxf86vm)
 
     endif()
 
     if(GEN_LINUX_WAYLAND_ACTIVE)
 
+      # wayland-cursor is not used yet (cursor theme restore is comment-only).
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-client)
-      list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-cursor)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS xkbcommon)
 
       if(GRP_OPENGL_FEATURE)
