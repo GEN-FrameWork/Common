@@ -466,6 +466,27 @@ endif()
 
 
 # --------------------------------------------------------------------
+# Scraper Web (child features must enable SCRIPT_* before the Scripts block below)
+
+if(DIO_SCRAPERWEB_PUBLICIP_FEATURE OR DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE OR DIO_SCRAPERWEB_WEATHER_FEATURE OR DIO_SCRAPERWEB_TRANSLATION_FEATURE OR DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE)
+
+  option(DIO_SCRAPERWEB_FEATURE                                   "Scraper Web"                                             ON )
+
+endif()
+
+
+if(DIO_SCRAPERWEB_FEATURE)
+
+  option(DIO_WEBCLIENT_FEATURE                                    "Web Client"                                              ON )
+  option(SCRIPT_FEATURE                                           "Scripts"                                                 ON )
+  option(SCRIPT_G_FEATURE                                         "Script G Language"                                       ON )
+  option(SCRIPT_LIB_WEBCLIENT_FEATURE                             "Script Lib WebClient"                                    ON )
+  option(SCRIPT_LIB_SCRAPER_FEATURE                               "Script Lib Scraper bridge"                               ON )
+
+endif()
+
+
+# --------------------------------------------------------------------
 # Scripts
 
 if(SCRIPT_FEATURE)
@@ -495,6 +516,22 @@ if(SCRIPT_FEATURE)
   if(SCRIPT_LIB_PROCESS_FEATURE)
 
     add_definitions("-DSCRIPT_LIB_PROCESS_ACTIVE")
+    
+  endif()
+
+
+  if(SCRIPT_LIB_WEBCLIENT_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_WEBCLIENT_ACTIVE")
+
+    option(DIO_WEBCLIENT_FEATURE                                  "Web Client"                                              ON )
+    
+  endif()
+
+
+  if(SCRIPT_LIB_SCRAPER_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_SCRAPER_ACTIVE")
     
   endif()
 
@@ -1188,15 +1225,47 @@ if(DIO_FEATURE)
   endif() 
   
   
+ 
   if(DIO_SCRAPERWEB_FEATURE)  
   
     add_definitions(-DDIO_SCRAPERWEB_ACTIVE)  
   
-    option(XFILE_XML_FEATURE                                      "XFile XML format"                                        ON )
-    option(XFILE_JSON_FEATURE                                     "XFile JSON format"                                       ON )
-    option(DIO_WEBCLIENT_FEATURE                                  "Web Client"                                              ON )
-  
   endif() 
+
+
+  if(DIO_SCRAPERWEB_PUBLICIP_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_PUBLICIP_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_GEOLOCATIONIP_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_WEATHER_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_WEATHER_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_TRANSLATION_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_TRANSLATION_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_MACMANUFACTURER_ACTIVE)
+
+  endif()
   
   option(DIO_STREAMTLS12_FEATURE                                "TLS 1.2 (RFC 5246)"                                      ON )
 
