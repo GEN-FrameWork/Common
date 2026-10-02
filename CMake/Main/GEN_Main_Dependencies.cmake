@@ -529,6 +529,17 @@ if(SCRIPT_FEATURE)
   endif()
 
 
+  if(SCRIPT_LIB_TRACESERVER_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_TRACESERVER_ACTIVE")
+
+    option(XTRACE_FEATURE                                         "Activate XTrace"                                         ON )
+    option(DIO_FEATURE                                            "Input/Output"                                            ON )
+    option(DIO_STREAMUDP_FEATURE                                  "Stream UDP"                                              ON )
+    
+  endif()
+
+
   if(SCRIPT_LIB_SCRAPER_FEATURE)
 
     add_definitions("-DSCRIPT_LIB_SCRAPER_ACTIVE")
@@ -550,9 +561,9 @@ if(SCRIPT_FEATURE)
   endif()
 
 
-  if(SCRIPT_LIB_WINDOW_FEATURE)
+  if(SCRIPT_LIB_SCREEN_FEATURE)
 
-    add_definitions("-DSCRIPT_LIB_WINDOW_ACTIVE")
+    add_definitions("-DSCRIPT_LIB_SCREEN_ACTIVE")
 
     option(GRP_FEATURE                                            "Graphics"                                                ON )
     option(GRP_2D_FEATURE                                         "Activate Graphics 2D"                                    ON )
@@ -1743,6 +1754,13 @@ if(XUUID_FEATURE)
   option(HASH_CRC32_FEATURE                                       "Hash CRC32"                                              ON )
     
 endif()   
+    
+
+if(XID_IBAN_FEATURE)
+
+  add_definitions(-DXID_IBAN_ACTIVE)
+
+endif()
     
       
 if(XLOG_FEATURE)    
