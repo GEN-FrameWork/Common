@@ -706,6 +706,12 @@ if(DIO_FEATURE)
 
     endif()
 
+    if(DIO_SCRAPERWEB_USERAGENTID_FEATURE)
+
+      list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_DATAIO_SCRAPERWEB}/DIOScraperWebUserAgentID.cpp")
+
+    endif()
+
   endif()
 
 
