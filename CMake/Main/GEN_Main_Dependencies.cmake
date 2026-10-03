@@ -466,6 +466,27 @@ endif()
 
 
 # --------------------------------------------------------------------
+# Scraper Web (child features must enable SCRIPT_* before the Scripts block below)
+
+if(DIO_SCRAPERWEB_PUBLICIP_FEATURE OR DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE OR DIO_SCRAPERWEB_WEATHER_FEATURE OR DIO_SCRAPERWEB_TRANSLATION_FEATURE OR DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE OR DIO_SCRAPERWEB_USERAGENTID_FEATURE)
+
+  option(DIO_SCRAPERWEB_FEATURE                                   "Scraper Web"                                             ON )
+
+endif()
+
+
+if(DIO_SCRAPERWEB_FEATURE)
+
+  option(DIO_WEBCLIENT_FEATURE                                    "Web Client"                                              ON )
+  option(SCRIPT_FEATURE                                           "Scripts"                                                 ON )
+  option(SCRIPT_G_FEATURE                                         "Script G Language"                                       ON )
+  option(SCRIPT_LIB_WEBCLIENT_FEATURE                             "Script Lib WebClient"                                    ON )
+  option(SCRIPT_LIB_SCRAPER_FEATURE                               "Script Lib Scraper bridge"                               ON )
+
+endif()
+
+
+# --------------------------------------------------------------------
 # Scripts
 
 if(SCRIPT_FEATURE)
@@ -498,6 +519,33 @@ if(SCRIPT_FEATURE)
     
   endif()
 
+
+  if(SCRIPT_LIB_WEBCLIENT_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_WEBCLIENT_ACTIVE")
+
+    option(DIO_WEBCLIENT_FEATURE                                  "Web Client"                                              ON )
+    
+  endif()
+
+
+  if(SCRIPT_LIB_TRACESERVER_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_TRACESERVER_ACTIVE")
+
+    option(XTRACE_FEATURE                                         "Activate XTrace"                                         ON )
+    option(DIO_FEATURE                                            "Input/Output"                                            ON )
+    option(DIO_STREAMUDP_FEATURE                                  "Stream UDP"                                              ON )
+    
+  endif()
+
+
+  if(SCRIPT_LIB_SCRAPER_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_SCRAPER_ACTIVE")
+    
+  endif()
+
   
   if(SCRIPT_LIB_LOG_FEATURE)
 
@@ -513,9 +561,9 @@ if(SCRIPT_FEATURE)
   endif()
 
 
-  if(SCRIPT_LIB_WINDOW_FEATURE)
+  if(SCRIPT_LIB_SCREEN_FEATURE)
 
-    add_definitions("-DSCRIPT_LIB_WINDOW_ACTIVE")
+    add_definitions("-DSCRIPT_LIB_SCREEN_ACTIVE")
 
     option(GRP_FEATURE                                            "Graphics"                                                ON )
     option(GRP_2D_FEATURE                                         "Activate Graphics 2D"                                    ON )
@@ -546,6 +594,15 @@ if(SCRIPT_FEATURE)
   if(SCRIPT_LIB_DEVTEST_FEATURE)
 
     add_definitions("-DSCRIPT_LIB_DEVTEST_ACTIVE")
+    
+  endif()
+
+
+  # Trusted (default): full Lua standard libs + GEN Dir/Process when their features are on.
+  # Sandbox: restricted Lua libs (no os/io/package/debug) and Dir/Process are not auto-registered.
+  if(SCRIPT_LIB_SANDBOX_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_SANDBOX_ACTIVE")
     
   endif()
 
@@ -1179,15 +1236,54 @@ if(DIO_FEATURE)
   endif() 
   
   
+ 
   if(DIO_SCRAPERWEB_FEATURE)  
   
     add_definitions(-DDIO_SCRAPERWEB_ACTIVE)  
   
-    option(XFILE_XML_FEATURE                                      "XFile XML format"                                        ON )
-    option(XFILE_JSON_FEATURE                                     "XFile JSON format"                                       ON )
-    option(DIO_WEBCLIENT_FEATURE                                  "Web Client"                                              ON )
-  
   endif() 
+
+
+  if(DIO_SCRAPERWEB_PUBLICIP_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_PUBLICIP_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_GEOLOCATIONIP_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_WEATHER_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_WEATHER_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_TRANSLATION_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_TRANSLATION_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_MACMANUFACTURER_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_USERAGENTID_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_USERAGENTID_ACTIVE)
+
+  endif()
   
   option(DIO_STREAMTLS12_FEATURE                                "TLS 1.2 (RFC 5246)"                                      ON )
 
@@ -1665,6 +1761,13 @@ if(XUUID_FEATURE)
   option(HASH_CRC32_FEATURE                                       "Hash CRC32"                                              ON )
     
 endif()   
+    
+
+if(XID_IBAN_FEATURE)
+
+  add_definitions(-DXID_IBAN_ACTIVE)
+
+endif()
     
       
 if(XLOG_FEATURE)    
