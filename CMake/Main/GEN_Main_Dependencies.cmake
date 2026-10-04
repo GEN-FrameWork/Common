@@ -600,6 +600,15 @@ if(SCRIPT_FEATURE)
   endif()
 
 
+  if(SCRIPT_LIB_FILECSV_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_FILECSV_ACTIVE")
+
+    option(XFILE_CSV_FEATURE                                      "XFile CSV format"                                        ON )
+    
+  endif()
+
+
   # Trusted (default): full Lua standard libs + GEN Dir/Process when their features are on.
   # Sandbox: restricted Lua libs (no os/io/package/debug) and Dir/Process are not auto-registered.
   if(SCRIPT_LIB_SANDBOX_FEATURE)
