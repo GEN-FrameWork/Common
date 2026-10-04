@@ -568,6 +568,8 @@ if(SCRIPT_FEATURE)
     option(GRP_FEATURE                                            "Graphics"                                                ON )
     option(GRP_2D_FEATURE                                         "Activate Graphics 2D"                                    ON )
     option(GRP_BITMAP_FILE_FEATURE                                "Graphics Files Bitmap Type"                              ON )
+    option(GRP_BITMAP_FILE_BMP_FEATURE                            "Graphics Bitmap File BMP"                                ON )
+    option(GRP_BITMAP_FILE_PNG_FEATURE                            "Graphics Bitmap File PNG"                                ON )
 
     option(APPFLOW_GRAPHICS_FEATURE                               "Application Flow Graphics"                               ON ) 
     
@@ -594,6 +596,15 @@ if(SCRIPT_FEATURE)
   if(SCRIPT_LIB_DEVTEST_FEATURE)
 
     add_definitions("-DSCRIPT_LIB_DEVTEST_ACTIVE")
+    
+  endif()
+
+
+  if(SCRIPT_LIB_FILECSV_FEATURE)
+
+    add_definitions("-DSCRIPT_LIB_FILECSV_ACTIVE")
+
+    option(XFILE_CSV_FEATURE                                      "XFile CSV format"                                        ON )
     
   endif()
 
