@@ -22,9 +22,7 @@ RUN apt-get update && \
   libc6 \
   libatomic1 \
   libasound2t64 \
-  libwayland-client0 \
-  libwayland-egl1 \
-  libxkbcommon0 && \
+  libpcap0.8t64 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

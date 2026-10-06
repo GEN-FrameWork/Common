@@ -292,6 +292,79 @@ def build_android_cmake_arguments(common_root: Path, target: str) -> list[str]:
         '-DANDROID_STL=c++_shared',
     ]
 
+
+def build_cmake_configure_command(
+    common_root: Path,
+    target: str,
+    settings: dict[str, str],
+    effective_environment: dict[str, str],
+) -> list[str]:
+    command = [
+        'cmake',
+        '-G', 'Ninja',
+        '-Wno-deprecated',
+        '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+    ]
+    if target in {'ANDROID32', 'ANDROID64'}:
+        command.extend(build_android_cmake_arguments(common_root, target))
+    command.extend([
+        f'-DTARGET={target}',
+        f'-DUSE_CLANG_EXTCFG={effective_environment["USE_CLANG_EXTCFG"]}',
+        f'-DCOVERAGE_CREATEINFO_EXTERNAL_CFG={effective_environment["COVERAGE_CREATEINFO_EXTERNAL_CFG"]}',
+        f'-DDEBUG_EXTCFG={effective_environment["DEBUG_EXTCFG"]}',
+        f'-DMEMORY_EXTCFG={effective_environment["MEMORY_EXTCFG"]}',
+        f'-DTRACE_EXTCFG={effective_environment["TRACE_EXTCFG"]}',
+        f'-DFEEDBACK_EXTCFG={effective_environment["FEEDBACK_EXTCFG"]}',
+        f'-DPATHLISTAPP={settings["PATHLISTAPP"]}',
+        f'-DCMAKE_CREATEDOCKERFILE_EXTERNAL_CFG={effective_environment["CMAKE_CREATEDOCKERFILE_EXTERNAL_CFG"]}',
+        '../../../..',
+    ])
+    return command
+
+
+def ninja_build_file_ready(build_dir: Path) -> bool:
+    """True when build.ninja exists and is readable (WSL mounts can briefly lie)."""
+    ninja_file = build_dir / 'build.ninja'
+    try:
+        if not ninja_file.is_file() or ninja_file.stat().st_size <= 0:
+            return False
+        with ninja_file.open('rb') as handle:
+            return bool(handle.read(64))
+    except OSError:
+        return False
+
+
+def looks_like_ninja_bootstrap_failure(log_text: str) -> bool:
+    """Detect ninja failing before any real compile (missing/corrupt build graph, I/O)."""
+    markers = (
+        "loading 'build.ninja'",
+        'loading "build.ninja"',
+        'ninja: error: loading',
+        'ninja: fatal:',
+        'input/output error',
+        'stale file handle',
+        'stale nfs file handle',
+    )
+    lowered = log_text.lower()
+    return any(marker in lowered for marker in markers)
+
+
+def run_cmake_configure(
+    *,
+    build_dir: Path,
+    common_root: Path,
+    target: str,
+    settings: dict[str, str],
+    effective_environment: dict[str, str],
+    outfile: Path,
+    reason: str,
+) -> int:
+    write_log_line(outfile, f'[#AUTO CMAKE] {reason}')
+    build_dir.mkdir(parents=True, exist_ok=True)
+    command = build_cmake_configure_command(common_root, target, settings, effective_environment)
+    return run_command(command, cwd=build_dir, environment=effective_environment, outfile=outfile)
+
+
 def run_compile_stage(
     stage: str,
     target: str,
@@ -329,28 +402,29 @@ def run_compile_stage(
     write_log_line(outfile, '_______________________________________________________________________________________________________________________________________________________________________________')
 
     if stage == 'CMAKE':
-        command = [
-            'cmake',
-            '-G', 'Ninja',
-            '-Wno-deprecated',
-            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
-        ]
-        if target in {'ANDROID32', 'ANDROID64'}:
-            command.extend(build_android_cmake_arguments(common_root, target))
-        command.extend([
-            f'-DTARGET={target}',
-            f'-DUSE_CLANG_EXTCFG={effective_environment["USE_CLANG_EXTCFG"]}',
-            f'-DCOVERAGE_CREATEINFO_EXTERNAL_CFG={effective_environment["COVERAGE_CREATEINFO_EXTERNAL_CFG"]}',
-            f'-DDEBUG_EXTCFG={effective_environment["DEBUG_EXTCFG"]}',
-            f'-DMEMORY_EXTCFG={effective_environment["MEMORY_EXTCFG"]}',
-            f'-DTRACE_EXTCFG={effective_environment["TRACE_EXTCFG"]}',
-            f'-DFEEDBACK_EXTCFG={effective_environment["FEEDBACK_EXTCFG"]}',
-            f'-DPATHLISTAPP={settings["PATHLISTAPP"]}',
-            f'-DCMAKE_CREATEDOCKERFILE_EXTERNAL_CFG={effective_environment["CMAKE_CREATEDOCKERFILE_EXTERNAL_CFG"]}',            
-            '../../../..',
-        ])
+        command = build_cmake_configure_command(common_root, target, settings, effective_environment)
         action_text = 'Generate CMake'
     elif stage == 'COMPILE':
+        # COMPILE-only batches (no CMAKE stage) still need a valid Ninja graph.
+        # On Docker+WSL mounts, build.ninja can be missing or briefly unreadable
+        # for a single app while neighbors are fine — regenerate instead of a 0s Error!.
+        if not ninja_build_file_ready(build_dir):
+            configure_code = run_cmake_configure(
+                build_dir=build_dir,
+                common_root=common_root,
+                target=target,
+                settings=settings,
+                effective_environment=effective_environment,
+                outfile=outfile,
+                reason=f'{app_entry.name}: build.ninja missing/unreadable; regenerating before ninja',
+            )
+            if configure_code != 0:
+                operation_prefix = build_stage_prefix(target, debug_value, 'Compilate project', app_entry.name)
+                print(operation_prefix, end='', flush=True)
+                print(build_stage_result_suffix(False, time.time()))
+                write_log_line(outfile, '')
+                write_log_line(outfile, '')
+                return configure_code, 0
         command = ['ninja']
         action_text = 'Compilate project'
     elif stage == 'TEST' and app_entry.name.startswith('unittests_') and target in {'INTEL32', 'INTEL64'}:
@@ -371,7 +445,27 @@ def run_compile_stage(
     operation_prefix = build_stage_prefix(target, debug_value, action_text, app_entry.name)
     print(operation_prefix, end='', flush=True)
     operation_start = time.time()
+    attempt_log_offset = outfile.stat().st_size if outfile.exists() else 0
     returncode = run_command(command, cwd=build_dir, environment=effective_environment, outfile=outfile)
+
+    # One recovery pass: ninja sometimes fails instantly on a flaky mount even when
+    # the file looked present a moment earlier. Reconfigure and retry once.
+    if stage == 'COMPILE' and returncode != 0:
+        ninja_log = read_outfile_tail(outfile, attempt_log_offset)
+        if looks_like_ninja_bootstrap_failure(ninja_log) or not ninja_build_file_ready(build_dir):
+            write_log_line(outfile, f'[#AUTO CMAKE RETRY] {app_entry.name}: ninja bootstrap failed; regenerating and retrying once')
+            configure_code = run_cmake_configure(
+                build_dir=build_dir,
+                common_root=common_root,
+                target=target,
+                settings=settings,
+                effective_environment=effective_environment,
+                outfile=outfile,
+                reason=f'{app_entry.name}: retry configure after ninja bootstrap failure',
+            )
+            if configure_code == 0:
+                returncode = run_command(command, cwd=build_dir, environment=effective_environment, outfile=outfile)
+
     warning_count = 0
     if stage == 'COMPILE':
         warning_count = collect_compile_warning_count(outfile, stage_start_offset)
