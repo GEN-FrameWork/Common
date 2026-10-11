@@ -50,7 +50,49 @@
 # COMPILE_WITH_CLANG_CL           "Compile CLang CL (interfaz MSVC)"
 
 
+# --------------------------------------------------------------------
+# TARGET must survive ninja-driven reconfigures. Those re-runs do not pass
+# -DTARGET again; if the cache was invalidated (e.g. compiler FORCE), restore
+# from the environment (compile.py) or from the build directory layout.
+# --------------------------------------------------------------------
+
+if("${TARGET}" STREQUAL "")
+  if(DEFINED ENV{TARGET} AND NOT "$ENV{TARGET}" STREQUAL "")
+    set(TARGET "$ENV{TARGET}")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]intel64[/\\\\]")
+    set(TARGET "INTEL64")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]intel32[/\\\\]")
+    set(TARGET "INTEL32")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]android64[/\\\\]")
+    set(TARGET "ANDROID64")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]android32[/\\\\]")
+    set(TARGET "ANDROID32")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]arm64[/\\\\]")
+    set(TARGET "ARM64")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]arm[/\\\\]")
+    set(TARGET "ARM")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]rpi64[/\\\\]")
+    set(TARGET "RPI64")
+  elseif("${CMAKE_BINARY_DIR}" MATCHES "[/\\\\]rpi32[/\\\\]")
+    set(TARGET "RPI32")
+  endif()
+endif()
+
+if(NOT "${TARGET}" STREQUAL "")
+  set(TARGET "${TARGET}" CACHE STRING "GEN compile target architecture" FORCE)
+endif()
+
+# Re-detect platform when the guard was set but a cache wipe left COMPILE_FOR_* empty.
+set(_GEN_NEED_PLATFORM_DETECT FALSE)
 if(NOT GEN_DETECT_PLATFORM_COMPILER)
+  set(_GEN_NEED_PLATFORM_DETECT TRUE)
+elseif((("${TARGET}" STREQUAL "INTEL32") OR ("${TARGET}" STREQUAL "INTEL64")) AND NOT COMPILE_FOR_WINDOWS)
+  set(_GEN_NEED_PLATFORM_DETECT TRUE)
+elseif((("${TARGET}" STREQUAL "ANDROID32") AND NOT COMPILE_FOR_ANDROID32) OR (("${TARGET}" STREQUAL "ANDROID64") AND NOT COMPILE_FOR_ANDROID64))
+  set(_GEN_NEED_PLATFORM_DETECT TRUE)
+endif()
+
+if(_GEN_NEED_PLATFORM_DETECT)
 
   if(NOT GEN_MAIN_INIT)
   
@@ -259,145 +301,162 @@ if(NOT GEN_DETECT_PLATFORM_COMPILER)
   endif()
 
 
-  # --- CLang compiler -------------------------------------------------
+endif() # _GEN_NEED_PLATFORM_DETECT
 
 
-  set(USE_CLANG_CTRL_MSG "by External Config") 
+# --- CLang compiler (every configure) ---------------------------------
 
-  if("${USE_CLANG_EXTCFG}" STREQUAL "CLANG")
+set(USE_CLANG_CTRL_MSG "by External Config")
 
-    option(USE_CLANG_CTRL_FEATURE  "Use CLang compiler Ctrl"  ON)
-    
+if("${USE_CLANG_EXTCFG}" STREQUAL "CLANG")
+
+  option(USE_CLANG_CTRL_FEATURE  "Use CLang compiler Ctrl"  ON)
+
+else()
+
+  if("${USE_CLANG_EXTCFG}" STREQUAL "NOTCLANG")
+
+    unset(USE_CLANG_CTRL_FEATURE     CACHE)
+    unset(USE_CLANG_COMPILER_FEATURE CACHE)
+
   else()
-  
-    if("${USE_CLANG_EXTCFG}" STREQUAL "NOTCLANG")
-  
-      unset(USE_CLANG_CTRL_FEATURE     CACHE)
-      unset(USE_CLANG_COMPILER_FEATURE CACHE)
-      
-    else()
-      
-      if(USE_CLANG_COMPILER_FEATURE)
-        
-        option(USE_CLANG_CTRL_FEATURE  "Use CLang compiler Ctrl"  ON)
-      
-      endif()
 
-    set(USE_CLANG_CTRL_MSG "by Proyect") 
+    if(USE_CLANG_COMPILER_FEATURE)
+
+      option(USE_CLANG_CTRL_FEATURE  "Use CLang compiler Ctrl"  ON)
 
     endif()
-  
+
+    set(USE_CLANG_CTRL_MSG "by Proyect")
+
   endif()
-  
-  if(USE_CLANG_CTRL_FEATURE)  
-    
+
+endif()
+
+if(USE_CLANG_CTRL_FEATURE)
+
+  if(COMPILE_FOR_WINDOWS)
+
+    find_program(_CLANG_CL clang-cl)
+    if(NOT _CLANG_CL)
+      message(FATAL_ERROR "[ GEN Selected but clang-cl not found ]")
+      unset(USE_CLANG_COMPILER_FEATURE CACHE)
+      option(USE_CLANG_COMPILER_FEATURE                            "Use Clang Compiler"                                     OFF )
+    endif()
+
+  else()
+
     find_program(_CLANG clang)
     find_program(_CLANGXX clang++)
 
     if(NOT _CLANG OR NOT _CLANGXX)
 
       message(FATAL_ERROR "[ GEN Selected but clang/clang++ not found ]")
-      
+
       unset(USE_CLANG_COMPILER_FEATURE CACHE)
       option(USE_CLANG_COMPILER_FEATURE                            "Use Clang Compiler"                                     OFF )
-     
+
     endif()
 
   endif()
 
+endif()
 
-  
-  # --- Compilers Setup ------------------------------------------------
 
-  if(COMPILE_FOR_WINDOWS)
-    
-    include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Windows.cmake") 
+# --------------------------------------------------------------------
+# Compiler setup must run on every configure — including cmake restarts
+# triggered by changing CMAKE_C_COMPILER after project(). Skipping this
+# when GEN_DETECT_PLATFORM_COMPILER is already ON drops /MACHINE and
+# -m32/-m64 flags and produces broken INTEL32 ABI tests / missing sources.
+# --------------------------------------------------------------------
 
-    if(USE_CLANG_CTRL_FEATURE)
+if(COMPILE_FOR_WINDOWS)
 
-      unset(COMPILE_WITH_MSVC     CACHE)
-      unset(COMPILE_WITH_CLANG_CL CACHE)
+  include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Windows.cmake")
+
+  if(USE_CLANG_CTRL_FEATURE AND NOT COMPILE_WITH_CLANG_CL)
+
+    unset(COMPILE_WITH_MSVC     CACHE)
+    unset(COMPILE_WITH_CLANG_CL CACHE)
+
+    add_definitions(-DCOMPILER_CLANG_CL)
+    option(COMPILE_WITH_CLANG_CL                                "Compile with CLang (interface MSVC)"                     ON )
+    message(STATUS "[ GEN Select for compile: CLang CLI (interface MSVC) ${USE_CLANG_CTRL_MSG} ]")
+
+  endif()
+
+endif()
+
+
+if(COMPILE_FOR_LINUX)
+
+  include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Linux.cmake")
+
+  if(USE_CLANG_CTRL_FEATURE AND NOT COMPILE_WITH_CLANG)
+
+    unset(COMPILE_WITH_GCC   CACHE)
+    unset(COMPILE_WITH_CLANG CACHE)
+
+    add_definitions(-DCOMPILER_CLANG)
+    option(COMPILE_WITH_CLANG                                  "Compile with CLang (front-end of LLVM)"                  ON )
+    message(STATUS "[ GEN Select for compile: CLang (front-end of LLVM) ${USE_CLANG_CTRL_MSG} ]")
+
+  endif()
+
+endif()
+
+
+if(COMPILE_FOR_ANDROID32 OR COMPILE_FOR_ANDROID64)
+
+  include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Android.cmake")
+
+endif()
+
+
+if(COMPILE_FOR_STM32)
+
+  include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_STM32.cmake")
+
+endif()
+
+
+if(COMPILE_FOR_ESP32)
+
+  include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_ESP32.cmake")
+
+endif()
+
+
+if(NOT COMPILE_WITH_CLANG_CL AND NOT COMPILE_WITH_CLANG)
+
+  if(CMAKE_C_COMPILER_ID MATCHES "^(Clang|AppleClang)$" OR CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$")
+
+    if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 
       add_definitions(-DCOMPILER_CLANG_CL)
       option(COMPILE_WITH_CLANG_CL                                "Compile with CLang (interface MSVC)"                     ON )
       message(STATUS "[ GEN Select for compile: CLang CLI (interface MSVC) ${USE_CLANG_CTRL_MSG} ]")
 
-    endif()
-     
-  endif()
-
-
-  if(COMPILE_FOR_LINUX)
- 
-    include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Linux.cmake")   
-
-    if(USE_CLANG_CTRL_FEATURE)
-
-      unset(COMPILE_WITH_GCC   CACHE)
-      unset(COMPILE_WITH_CLANG CACHE)
+    else()
 
       add_definitions(-DCOMPILER_CLANG)
-      option(COMPILE_WITH_CLANG                                  "Compile with CLang (front-end of LLVM)"                  ON )
+      option(COMPILE_WITH_CLANG                                   "Compile with CLang (front-end of LLVM)"                  ON )
       message(STATUS "[ GEN Select for compile: CLang (front-end of LLVM) ${USE_CLANG_CTRL_MSG} ]")
 
     endif()
 
-  endif()
+  elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
- 
-  if(COMPILE_FOR_ANDROID32 OR COMPILE_FOR_ANDROID64)      
+    add_definitions(-DCOMPILER_MSVC)
+    option(COMPILE_WITH_MSVC                                      "Compile with Microsoft Compiler (MSVC)"                  ON )
+    message(STATUS "[ GEN Select for compile: Microsoft Compiler (MSVC) ]")
 
-    include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Android.cmake")           
+  elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
-  endif()   
-
-
-  if(COMPILE_FOR_STM32)
-
-    include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_STM32.cmake")           
+    add_definitions(-DCOMPILER_GCC)
+    option(COMPILE_WITH_GCC                                       "Compile with GNU Compiler Collection (GCC)"              ON )
+    message(STATUS "[ GEN Select for compile: GNU Compiler Collection (GCC) ]")
 
   endif()
 
-
-  if(COMPILE_FOR_ESP32)
-
-    include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_ESP32.cmake")           
-
-  endif()
-
-
-  if(NOT COMPILE_WITH_CLANG_CL AND NOT COMPILE_WITH_CLANG)
-
-    if(CMAKE_C_COMPILER_ID MATCHES "^(Clang|AppleClang)$" OR CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$")
-
-      if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-
-        add_definitions(-DCOMPILER_CLANG_CL)
-        option(COMPILE_WITH_CLANG_CL                                "Compile with CLang (interface MSVC)"                     ON )
-        message(STATUS "[ GEN Select for compile: CLang CLI (interface MSVC) ${USE_CLANG_CTRL_MSG} ]")
-
-      else()
-
-        add_definitions(-DCOMPILER_CLANG)
-        option(COMPILE_WITH_CLANG                                   "Compile with CLang (front-end of LLVM)"                  ON )
-        message(STATUS "[ GEN Select for compile: CLang (front-end of LLVM) ${USE_CLANG_CTRL_MSG} ]")
-
-      endif()
-
-    elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-
-      add_definitions(-DCOMPILER_MSVC)
-      option(COMPILE_WITH_MSVC                                      "Compile with Microsoft Compiler (MSVC)"                  ON )
-      message(STATUS "[ GEN Select for compile: Microsoft Compiler (MSVC) ]")
-
-    elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-
-      add_definitions(-DCOMPILER_GCC)
-      option(COMPILE_WITH_GCC                                       "Compile with GNU Compiler Collection (GCC)"              ON )
-      message(STATUS "[ GEN Select for compile: GNU Compiler Collection (GCC) ]")
-
-    endif()
-
-  endif() # NOT COMPILE_WITH_CLANG_CL
-
-endif()
+endif() # NOT COMPILE_WITH_CLANG_CL

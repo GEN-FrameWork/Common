@@ -24,8 +24,10 @@ add_definitions(${GEN_MACRO})
 set(GEN_MACRO  "-DGEN_XPATHSMANAGER=XPATHSMANAGER::GetInstance()")
 add_definitions(${GEN_MACRO})
 
-set(GEN_MACRO  "-DGEN_XTRANSLATION=XTRANSLATION::GetInstance()")
-add_definitions(${GEN_MACRO})
+if(XTRANSLATION_FEATURE)
+  set(GEN_MACRO  "-DGEN_XTRANSLATION=XTRANSLATION::GetInstance()")
+  add_definitions(${GEN_MACRO})
+endif()
 
 set(GEN_MACRO  "-DGEN_XPUBLISHER=XPUBLISHER::GetInstance()")
 add_definitions(${GEN_MACRO})
