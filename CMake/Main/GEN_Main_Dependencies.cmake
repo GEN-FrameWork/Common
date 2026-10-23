@@ -133,6 +133,7 @@ if(APPFLOW_FEATURE)
   
   option(XPUBLISHER_FEATURE                                     "XPublisher"                                              ON )
   option(XSYSTEM_FEATURE                                        "System functions"                                        ON )
+  option(XTRANSLATION_FEATURE                                   "Translation"                                             ON )
 
 
   if(APPFLOW_EXTENDED_APPLICATIONHEADER_FEATURE)  

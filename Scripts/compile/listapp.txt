@@ -32,3 +32,4 @@
 "../../../Tests/UnitTests_UserInterface"          "unittests_userinterface"     "INTEL32 INTEL64 ARM64 RPI64"
 "../../../Utilities/APPUpdateCreator"             "appupdatecreator"            "INTEL32 INTEL64 ARM64 RPI64"
 "../../../Utilities/TranslateScan"                "translatescan"               "INTEL32 INTEL64 ARM64 RPI64"
+"../../../Utilities/ActionScriptQA"               "actionscriptqa"              "INTEL32 INTEL64 ARM64 RPI64"
