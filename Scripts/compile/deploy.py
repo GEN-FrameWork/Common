@@ -26,6 +26,24 @@ PLATFORM_VALUES = {'INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64'}
 MODE_VALUES = {'DEBUG', 'RELEASE'}
 COMMAND_VALUES = ('DOWN', 'BUILD', 'UP')
 
+# Prod images must match the CPU the binary was built for (host arch ≠ target).
+DOCKER_PLATFORM_BY_TARGET = {
+    'INTEL64': 'linux/amd64',
+    'ARM64': 'linux/arm64',
+    'RPI64': 'linux/arm64',
+    'ARM32': 'linux/arm/v7',
+    'RPI32': 'linux/arm/v7',
+}
+
+
+def resolve_apppath_for_compose(entry_absolute_path: Path, compose_file: Path, fallback: str) -> str:
+    """APPPATH for dockerfile COPY, relative to compose build context (../../../ = Projects)."""
+    context_root = (compose_file.parent / '../../..').resolve()
+    try:
+        return entry_absolute_path.relative_to(context_root).as_posix()
+    except ValueError:
+        return fallback
+
 
 def main(argv: list[str] | None = None) -> int:
     if os.name == 'nt':
@@ -69,24 +87,35 @@ def main(argv: list[str] | None = None) -> int:
         if not selected_actions:
             selected_actions = list(COMMAND_VALUES)
 
+        docker_directory = find_docker_directory(pathlistapp.parent.parent)
+        compose_file = docker_directory / 'docker-compose-prod.yml'
+        if not compose_file.exists():
+            print(f'[Error] compose file not found: {compose_file}')
+            return 1
+
         print('-------------------------------------------------------------')
         print(f"Modes          : {' '.join(modes)}")
         print(f"Plataforms     : {' '.join(platforms)}")
+        print(f"Docker plats   : {' '.join(DOCKER_PLATFORM_BY_TARGET[name] for name in platforms)}")
         print(f"Image Base     : {settings['IMAGEBASE']}")
         print(f"Applications   : {' '.join(entry.name for entry in selected_entries)}")
+        print(f"Compose file   : {compose_file}")
         print('-------------------------------------------------------------')
 
         environment = os.environ.copy()
         environment.update(settings)
 
-        docker_directory = find_docker_directory(pathlistapp.parent.parent)
-        compose_file = docker_directory / 'docker-compose-prod.yml'
-
         for platform_name in platforms:
             if cancellation_requested():
                 return cancellation_exit_code()
+            docker_platform = DOCKER_PLATFORM_BY_TARGET[platform_name]
             environment['TARGET'] = platform_name
             environment['TARGET_LOWERCASE'] = platform_lower(platform_name)
+            environment['DOCKER_PLATFORM'] = docker_platform
+            # Prefer env over `compose build --platform` (not available on older Compose).
+            environment['DOCKER_DEFAULT_PLATFORM'] = docker_platform
+            environment['BUILDKIT'] = '1'
+            environment['DOCKER_BUILDKIT'] = '1'
             for mode_name in modes:
                 if cancellation_requested():
                     return cancellation_exit_code()
@@ -97,10 +126,25 @@ def main(argv: list[str] | None = None) -> int:
                 for entry in selected_entries:
                     if cancellation_requested():
                         return cancellation_exit_code()
-                    environment['APPPATH'] = entry.relative_path
+                    environment['APPPATH'] = resolve_apppath_for_compose(
+                        entry.absolute_path,
+                        compose_file,
+                        entry.relative_path,
+                    )
                     environment['APPNAME'] = entry.name
                     for action in selected_actions:
-                        command = ['docker', 'compose', '-f', str(compose_file), action.lower(), entry.name]
+                        # Image tag includes TARGET_LOWERCASE (see docker-compose-prod.yml)
+                        # so INTEL64 and RPI64 do not overwrite each other.
+                        # Architecture comes from compose `build.platforms` + DOCKER_DEFAULT_PLATFORM.
+                        command = [
+                            'docker', 'compose', '-f', str(compose_file),
+                            action.lower(),
+                            entry.name,
+                        ]
+                        print(
+                            f'[{platform_name}/{mode_name}] {action} {entry.name} '
+                            f'→ platform={docker_platform} image=gen_prod:{environment["TARGET_LOWERCASE"]}-{entry.name}'
+                        )
                         returncode = run_command(command, cwd=pathlistapp, environment=environment, capture_to_outfile=False)
                         if returncode != 0:
                             return returncode
