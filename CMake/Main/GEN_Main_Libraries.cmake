@@ -208,6 +208,12 @@ if(COMPILE_FOR_LINUX)
       # XF86VidMode / Xext APIs are not called by GEN.
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS X11)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xrandr)
+      # Optional: XTest helps InpSim clicks when /dev/uinput is unavailable.
+      find_library(GEN_XTST_LIB Xtst)
+      if(GEN_XTST_LIB)
+        list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xtst)
+        add_definitions(-DLINUX_XTEST_ACTIVE)
+      endif()
 
     endif()
 
