@@ -116,8 +116,6 @@ if(COMPILE_FOR_WINDOWS)
   
   if(SND_FEATURE)      
 
-    # winmm: ICMP timing (timeBeginPeriod) and OpenAL Soft WASAPI path may need it.
-    # avrt: required by OpenAL Soft WASAPI (AvSetMmThreadCharacteristics*).
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS winmm.lib)
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS avrt.lib)
 
@@ -200,15 +198,16 @@ if(COMPILE_FOR_LINUX)
 
   endif() 
 
-  if(GRP_FEATURE)
+  # Xlib is required whenever LINUX_X11 is active (console/process-manager window APIs),
+  # not only for GRP apps — otherwise XLINUXConsole / XLINUXProcessManager fail to link.
+  if(LINUX_X11_FEATURE)
 
-    if(LINUX_X11_FEATURE)
+    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS X11)
 
-      # XSync used by GRPLINUXScreenX11 is Xlib (libX11), not libXext.
-      # XF86VidMode / Xext APIs are not called by GEN.
-      list(APPEND GEN_SO_THIRDPARTY_LIBRARYS X11)
+    if(GRP_FEATURE)
+
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xrandr)
-      # Optional: XTest helps InpSim clicks when /dev/uinput is unavailable.
+
       find_library(GEN_XTST_LIB Xtst)
       if(GEN_XTST_LIB)
         list(APPEND GEN_SO_THIRDPARTY_LIBRARYS Xtst)
@@ -217,9 +216,12 @@ if(COMPILE_FOR_LINUX)
 
     endif()
 
+  endif()
+
+  if(GRP_FEATURE)
+
     if(GEN_LINUX_WAYLAND_ACTIVE)
 
-      # wayland-cursor is not used yet (cursor theme restore is comment-only).
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-client)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS xkbcommon)
 
