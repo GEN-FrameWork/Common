@@ -319,10 +319,6 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-sdk android:minSdkVersion=\"${GEN_ANDROID_MIN_SDK_CLEAN}\" android:targetSdkVersion=\"${GEN_ANDROID_TARGET_SDK_CLEAN}\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-feature android:glEsVersion=\"0x00020000\" android:required=\"false\" />\n")
 
-    # Network permissions required by GEN XTrace/DIO UDP/TCP and examples such as UI_System
-    # (internet check, public IP HTTP, local iface enum, Wi-Fi link state). The assets/package
-    # AndroidManifest may list these too, but the generated APK manifest is written here from
-    # scratch, so they must be emitted here as well.
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.INTERNET\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />\n")
     file(APPEND "${_GEN_ANDROID_MANIFEST_PATH}" "    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\" />\n")
@@ -683,12 +679,7 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
       add_custom_target("${_GEN_ANDROID_APK_TARGET}" DEPENDS "${GENAPK_TARGET_NAME}")
     endif()
 
-    # ------------------------------------------------------------------
-    # Stable alias target "android_apk" so that CMakePresets.json can
-    # reference a fixed, project-independent target name. Builds the
-    # per-project "<PROJECT_NAME>_apk" target above, and is added to ALL
-    # so that "Build All" / F7 generates the APK automatically.
-    # ------------------------------------------------------------------
+
     if(NOT TARGET "android_apk")
       add_custom_target("android_apk" ALL DEPENDS "${_GEN_ANDROID_APK_TARGET}")
     endif()

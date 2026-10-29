@@ -11,10 +11,6 @@ set(CMAKE_RC_COMPILER rc.exe CACHE FILEPATH "" FORCE)
   
 if(USE_CLANG_CTRL_FEATURE)
 
-  # Resolve clang-cl to a full path once. Forcing the bare name "clang-cl" on
-  # every configure makes CMake rewrite it to the absolute path and then treat
-  # that as a cache-breaking compiler change on the next ninja reconfigure
-  # (TARGET/COMPILE_FOR_* lost, INTEL32 ABI test fails with mainCRTStartup).
   find_program(_GEN_CLANG_CL NAMES clang-cl)
   if(NOT _GEN_CLANG_CL)
     message(FATAL_ERROR "[ GEN ] clang-cl not found in PATH")
@@ -42,8 +38,7 @@ if(USE_CLANG_CTRL_FEATURE)
 
   if(COMPILE_FOR_WINDOWS_INTEL_32)
 
-    # Persist arch flags in CACHE so the next project()-time try_compile
-    # (ninja/cmake reconfigure) links as X86 instead of defaulting to x64.
+   
     add_compile_options(/clang:-m32)
     add_link_options(/MACHINE:X86)
     if(NOT CMAKE_C_FLAGS MATCHES "clang:-m32")

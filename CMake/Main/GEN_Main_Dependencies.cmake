@@ -1798,6 +1798,14 @@ if(XTRANSLATION_FEATURE)
     
   option(XFILE_JSON_FEATURE                                       "XFile JSON format"                                       ON )
   option(XTRANSLATION_GEN_FEATURE                                 "Translation GEN"                                         ON )
+  # SetActual() uses GEN_XSYSTEM.GetLanguageSO() — require XSYSTEM when translation is on.
+  # Force after the earlier XSYSTEM_FEATURE/add_definitions block so Sources_* pick it up.
+  if(NOT XSYSTEM_FEATURE)
+    set(XSYSTEM_FEATURE ON CACHE BOOL "System functions (required by XTRANSLATION)" FORCE)
+  endif()
+  if(XSYSTEM_FEATURE)
+    add_definitions(-DXSYSTEM_ACTIVE)
+  endif()
 
 endif()
 
@@ -1820,6 +1828,14 @@ if(XPROCESSMANAGER_FEATURE)
 
   add_definitions(-DXPROCESSMANAGER_ACTIVE)
   option(XCONSOLE_FEATURE                                         "Console functions"                                       ON )
+
+  # Window enumeration / focus helpers in XLINUXProcessManager and XLINUXConsole need Xlib.
+  if(COMPILE_FOR_LINUX)
+    option(LINUX_X11_FEATURE                                      "Linux X11"                                               ON )
+    if(LINUX_X11_FEATURE)
+      add_definitions(-DLINUX_X11_ACTIVE)
+    endif()
+  endif()
 
 endif()
 
