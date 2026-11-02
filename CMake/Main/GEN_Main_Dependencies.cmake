@@ -849,14 +849,21 @@ if(GRP_FEATURE)
     add_definitions(-DGRP_OPENGL_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_VERSION=30)
-    
-   
+
     if(COMPILE_FOR_WINDOWS)
 
+      # ANGLE is Windows-only and only meaningful with OpenGL ES present.
       option(THIRDPARTYLIBRARIES_ANGLE_FEATURE                        "Angle OpenGL ES Library (Windows only)"                  ON )
-    
+
     endif()
-    
+
+  else()
+
+    # Force-clear sticky CMake cache: a prior configure with GRP_OPENGL_FEATURE=ON leaves
+    # THIRDPARTYLIBRARIES_ANGLE_FEATURE=ON in the cache; without this FORCE, OpenGL-OFF builds
+    # still compile/link the entire static ANGLE tree into the executable.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
   endif()
 
 
