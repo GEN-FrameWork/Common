@@ -29,18 +29,11 @@ if(LINUX_WAYLAND_FEATURE)
 
     if(GEN_WAYLAND_CLIENT_FOUND AND GEN_WAYLAND_CURSOR_FOUND AND GEN_WAYLAND_PROTOCOLS_FOUND AND GEN_XKBCOMMON_FOUND AND GEN_WAYLAND_SCANNER)
 
-      if(GRP_OPENGL_FEATURE)
+      # GLES blitter is always compiled with GRP_FEATURE on Linux, so Wayland needs wayland-egl.
+      pkg_check_modules(GEN_WAYLAND_EGL QUIET wayland-egl)
 
-        pkg_check_modules(GEN_WAYLAND_EGL QUIET wayland-egl)
-
-        if(GEN_WAYLAND_EGL_FOUND)
-          set(GEN_LINUX_WAYLAND_DEPS_FOUND TRUE)
-        endif()
-
-      else()
-
+      if(GEN_WAYLAND_EGL_FOUND)
         set(GEN_LINUX_WAYLAND_DEPS_FOUND TRUE)
-
       endif()
 
     endif()

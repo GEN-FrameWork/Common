@@ -13,16 +13,22 @@
 
 if(COMPILE_FOR_WINDOWS)  
  
-  if(APPFLOW_CONSOLE_FEATURE AND (NOT APPFLOW_GRAPHICS_NOTCONSOLE_FEATURE))    
-        
-    set_target_properties(${CMAKE_PROJECT_NAME}  PROPERTIES LINK_FLAGS /SUBSYSTEM:CONSOLE)
+  if(APPFLOW_CONSOLE_FEATURE AND (NOT APPFLOW_GRAPHICS_NOTCONSOLE_FEATURE))
+
+    # Console CRT entry (wmain). Clear WIN32_EXECUTABLE so CMake/Ninja do not keep a
+    # conflicting default /subsystem:console alongside an explicit WINDOWS flag.
+    set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE FALSE)
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "/SUBSYSTEM:CONSOLE")
 
   else()
 
     if(GRP_FEATURE)
 
-      set_target_properties(${CMAKE_PROJECT_NAME}  PROPERTIES LINK_FLAGS /SUBSYSTEM:WINDOWS )
-      
+      # GUI CRT entry (WinMain). WIN32_EXECUTABLE is what stops the Ninja generator from
+      # also emitting /subsystem:console (last flag wins with lld-link → undefined main).
+      set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+      target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "/SUBSYSTEM:WINDOWS")
+
     endif()
 
   endif()
@@ -122,8 +128,9 @@ if(COMPILE_FOR_WINDOWS)
   endif()
 
 
-  if(GRP_OPENGL_FEATURE)
+  if(GRP_FEATURE)
 
+    # GLES/ANGLE present path is always compiled with GRP_FEATURE on Windows.
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS synchronization dxgi)
 
   endif()
@@ -225,11 +232,14 @@ if(COMPILE_FOR_LINUX)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-client)
       list(APPEND GEN_SO_THIRDPARTY_LIBRARYS xkbcommon)
 
-      if(GRP_OPENGL_FEATURE)
-        list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-egl)
-      endif()
+      # GLES blitter always compiled with GRP_FEATURE on Linux.
+      list(APPEND GEN_SO_THIRDPARTY_LIBRARYS wayland-egl)
 
     endif()
+
+    # GLES present path is always compiled with GRP_FEATURE on Linux.
+    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS GLESv2)
+    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS EGL)
 
   endif()
 
@@ -237,14 +247,6 @@ if(COMPILE_FOR_LINUX)
   if(LINUX_DIO_DBUS_FEATURE)
 
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS dbus-1)
-
-  endif()
-  
-  
-  if(GRP_OPENGL_FEATURE)
-
-    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS GLESv2)
-    list(APPEND GEN_SO_THIRDPARTY_LIBRARYS EGL)
 
   endif()
 

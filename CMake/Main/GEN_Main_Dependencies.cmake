@@ -844,11 +844,25 @@ if(GRP_FEATURE)
   endif()
 
 
-  if(GRP_OPENGL_FEATURE)
+  # OpenGL ES present path
+  # -------------------
+  # Windows / Linux: always compile GLES (+ ANGLE on Windows) into graphics apps (fat binary).
+  # Runtime tries GLES first; if init fails the screen falls back to GDI / X11 / Wayland SHM.
+  # GRP_OPENGL_FEATURE = ON means GLES is REQUIRED (Create fails hard — no software fallback).
+  # Android: unchanged — GLES only when GRP_OPENGL_FEATURE is ON (always available on device).
+  option(GRP_OPENGL_FEATURE                                       "Graphics OpenGL ES required (OFF = try + software fallback)" OFF )
+
+  if(COMPILE_FOR_WINDOWS OR COMPILE_FOR_LINUX)
 
     add_definitions(-DGRP_OPENGL_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_VERSION=30)
+
+    if(GRP_OPENGL_FEATURE)
+
+      add_definitions(-DGRP_OPENGL_REQUIRED)
+
+    endif()
 
     if(COMPILE_FOR_WINDOWS)
 
@@ -857,10 +871,23 @@ if(GRP_FEATURE)
 
     endif()
 
+  elseif(COMPILE_FOR_ANDROID32 OR COMPILE_FOR_ANDROID64)
+
+    if(GRP_OPENGL_FEATURE)
+
+      add_definitions(-DGRP_OPENGL_ACTIVE)
+      add_definitions(-DGRP_OPENGL_ES_ACTIVE)
+      add_definitions(-DGRP_OPENGL_ES_VERSION=30)
+
+    endif()
+
+    # Android never links ANGLE.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
   else()
 
-    # Force-clear sticky CMake cache: a prior configure with GRP_OPENGL_FEATURE=ON leaves
-    # THIRDPARTYLIBRARIES_ANGLE_FEATURE=ON in the cache; without this FORCE, OpenGL-OFF builds
+    # Force-clear sticky CMake cache: a prior configure with graphics+ANGLE leaves
+    # THIRDPARTYLIBRARIES_ANGLE_FEATURE=ON; without this FORCE, non-desktop builds
     # still compile/link the entire static ANGLE tree into the executable.
     set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
 

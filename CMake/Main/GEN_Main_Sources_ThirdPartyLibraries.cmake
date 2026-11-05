@@ -4,8 +4,8 @@
 # --------------------------------------------------------------------
 
 
-# ANGLE is a Windows GLES translator; never compile it unless OpenGL ES is enabled for this target.
-if(GRP_OPENGL_FEATURE AND THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+# ANGLE is a Windows GLES translator; compile with desktop graphics when the feature is on.
+if(GRP_FEATURE AND COMPILE_FOR_WINDOWS AND THIRDPARTYLIBRARIES_ANGLE_FEATURE)
 
   list(APPEND GEN_THIRDPARTY_LIBRARYS ANGLE)
 
@@ -444,18 +444,17 @@ if(GRP_OPENGL_FEATURE AND THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libEGL/libEGL_autogen.cpp")
 
   list(APPEND GEN_SOURCES_MODULES_LIST ${GEN_TPL_SOURCES})
-    
-  set_source_files_properties(${GEN_TPL_SOURCES} PROPERTIES COMPILE_FLAGS "/std:c++20")
 
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_lex_autogen.cpp"
-                              "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_tab_autogen.cpp"
-                                PROPERTIES COMPILE_FLAGS "/std:c++20 /URESTRICT"
-                              )
-
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/third_party/xxhash/xxhash.c" PROPERTIES COMPILE_FLAGS "" )
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/third_party/libXNVCtrl/NVCtrl.c"    PROPERTIES COMPILE_FLAGS "" )
-    
+  # C++20 for ANGLE TUs lives in GEN_Main_Warnings.cmake
+  # (GEN_ThirdPartyLibraries_Warnings_MSVC_ANGLE / _CLANG_CL_ANGLE) — not hardcoded here.
   GEN_ThirdPartyLibraries_SuppressWarnings(ANGLE ${GEN_TPL_SOURCES})
+
+  # Pure C sources must not keep /std:c++20 from the ANGLE warning list.
+  set_source_files_properties(
+    "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/third_party/xxhash/xxhash.c"
+    "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/third_party/libXNVCtrl/NVCtrl.c"
+    PROPERTIES COMPILE_FLAGS ""
+  )
 
 endif()
 
@@ -694,8 +693,10 @@ if(THIRDPARTYLIBRARIES_OPENAL_FEATURE)
   add_definitions(-DAL_API=)
 
   add_definitions(-DNOMINMAX)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)  
-  add_definitions(-DRESTRICT=__restrict) 
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  # RESTRICT=__restrict is applied per OpenAL TU via GEN_Main_Warnings.cmake
+  # (not add_definitions): a global /DRESTRICT collides with ANGLE glslang's RESTRICT
+  # token and forced /URESTRICT on those two parsers → MSVC D9025.
   add_definitions(-DAL_ALEXT_PROTOTYPES)
   add_definitions(-DCMAKE_INTDIR="Debug")
   add_definitions(-DOpenAL_EXPORTS)
@@ -1176,4 +1177,19 @@ if(GOOGLETEST_FEATURE)
   list(APPEND GEN_SOURCES_MODULES_LIST ${GEN_TPL_SOURCES})
   GEN_ThirdPartyLibraries_SuppressWarnings(GoogleTest ${GEN_TPL_SOURCES})
 
+endif()
+
+
+# --------------------------------------------------------------------
+# ANGLE + MSVC/clang-cl: avoid D9025 (/std:c++17|/std:c++14 overridden by per-file /std:c++20)
+#
+# OpenAL and GoogleTest bump CMAKE_CXX_STANDARD globally for configure-time needs; that flag is
+# then injected on EVERY C++ TU of the app target. ANGLE sources also get /std:c++20 from
+# GEN_ThirdPartyLibraries_Warnings_MSVC_ANGLE / _CLANG_CL_ANGLE → MSVC command-line warning D9025.
+# Drop the directory-level standard here; those libraries already carry the required /std via
+# their Warnings_* lists. App/GEN sources then use the toolchain default (MSVC ≥ VS2017: C++14),
+# which covers GEN's C++11 baseline from GEN_Main_Dependencies. No-op when ANGLE is off.
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE AND (COMPILE_WITH_MSVC OR COMPILE_WITH_CLANG_CL))
+  unset(CMAKE_CXX_STANDARD)
+  unset(CMAKE_CXX_STANDARD_REQUIRED)
 endif()
