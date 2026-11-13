@@ -844,15 +844,37 @@ if(GRP_FEATURE)
   endif()
 
 
+  # Windows GDI-only present path
+  # -------------------
+  # When ON (Windows only): defines GRP_WINDOWS_GDI_ACTIVE, does NOT define GRP_OPENGL_ACTIVE,
+  # and force-disables ANGLE so it is neither compiled nor linked. All GEN Windows screens use GDI.
+  # Default OFF — other apps keep the fat-binary try-GLES + GDI fallback behaviour.
+  # Takes precedence over GRP_OPENGL_FEATURE on Windows.
+  option(GRP_WINDOWS_GDI_FEATURE                                  "Windows graphics: force GDI only (no ANGLE/GLES)"         OFF )
+
   # OpenGL ES present path
   # -------------------
-  # Windows / Linux: always compile GLES (+ ANGLE on Windows) into graphics apps (fat binary).
+  # Windows / Linux: always compile GLES (+ ANGLE on Windows) into graphics apps (fat binary),
+  # unless GRP_WINDOWS_GDI_FEATURE is ON (Windows GDI-only).
   # Runtime tries GLES first; if init fails the screen falls back to GDI / X11 / Wayland SHM.
   # GRP_OPENGL_FEATURE = ON means GLES is REQUIRED (Create fails hard — no software fallback).
   # Android: unchanged — GLES only when GRP_OPENGL_FEATURE is ON (always available on device).
   option(GRP_OPENGL_FEATURE                                       "Graphics OpenGL ES required (OFF = try + software fallback)" OFF )
 
-  if(COMPILE_FOR_WINDOWS OR COMPILE_FOR_LINUX)
+  if(COMPILE_FOR_WINDOWS AND GRP_WINDOWS_GDI_FEATURE)
+
+    add_definitions(-DGRP_WINDOWS_GDI_ACTIVE)
+
+    # Sticky cache from a prior ANGLE configure must not leave the library in the link.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
+    message(STATUS "[ GEN Windows present and forced to GDI (ANGLE/GLES disabled)]")
+
+    if(GRP_OPENGL_FEATURE)
+      message(WARNING "[ GEN overrides GRP_OPENGL_FEATURE on Windows (GDI-only build)]")
+    endif()
+
+  elseif(COMPILE_FOR_WINDOWS OR COMPILE_FOR_LINUX)
 
     add_definitions(-DGRP_OPENGL_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_ACTIVE)

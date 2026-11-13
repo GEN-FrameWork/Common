@@ -18,8 +18,12 @@ if(GRP_FEATURE)
 
   endif()
 
-  # Always compile Windows GLES blitter with graphics (runtime falls back to GDI if init fails).
-  list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_PLATFORMS_WINDOWS}/GRPWINDOWSBlitGLES.cpp")
+  # Windows GLES blitter (skipped when GRP_WINDOWS_GDI_FEATURE forces GDI-only).
+  if(NOT GRP_WINDOWS_GDI_FEATURE)
+
+    list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_PLATFORMS_WINDOWS}/GRPWINDOWSBlitGLES.cpp")
+
+  endif()
 
 
   # ANGLE: open-source (BSD-3) Google translator GLES -> D3D11.

@@ -128,9 +128,9 @@ if(COMPILE_FOR_WINDOWS)
   endif()
 
 
-  if(GRP_FEATURE)
+  if(GRP_FEATURE AND NOT GRP_WINDOWS_GDI_FEATURE)
 
-    # GLES/ANGLE present path is always compiled with GRP_FEATURE on Windows.
+    # GLES/ANGLE present path libs (not needed for Windows GDI-only builds).
     list(APPEND GEN_SO_THIRDPARTY_LIBRARYS synchronization dxgi)
 
   endif()
