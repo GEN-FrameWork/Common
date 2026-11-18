@@ -1887,6 +1887,21 @@ if(XSLEEP_FEATURE)
 endif()
 
 
+if(XCLIPBOARD_FEATURE)
+
+  add_definitions(-DXCLIPBOARD_ACTIVE)
+
+  # Linux clipboard uses X11 CLIPBOARD / UTF8_STRING (Xlib).
+  if(COMPILE_FOR_LINUX)
+    option(LINUX_X11_FEATURE                                      "Linux X11"                                               ON )
+    if(LINUX_X11_FEATURE)
+      add_definitions(-DLINUX_X11_ACTIVE)
+    endif()
+  endif()
+
+endif()
+
+
 if(XPROCESSMANAGER_FEATURE)
 
   add_definitions(-DXPROCESSMANAGER_ACTIVE)
