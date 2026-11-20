@@ -566,23 +566,18 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_DuckTape
 # OpenAL 
 
 set( GEN_ThirdPartyLibraries_Warnings_MSVC_OpenAL
+     /std:c++17                                                                        # OpenAL Soft 1.24 needs C++17; GoogleTest (and ANGLE D9025 cleanup) may reset CMAKE_CXX_STANDARD afterward
      /DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (global /D broke ANGLE glslang RESTRICT token → /URESTRICT D9025)
      # /wd4244                                                                         # warning C4244: conversion, possible loss of data
      # /wd4267                                                                         # warning C4267: conversion from 'size_t', possible loss of data
      # /wd4324                                                                         # warning C4324: structure was padded due to alignment specifier
      # /wd4456                                                                         # warning C4456: declaration of 'xxx' hides previous local declaration
      # /wd4457                                                                         # warning C4457: declaration of 'xxx' hides function parameter
-     /wd4293                                                                           # warning C4293: '>>': shift count negative or too big, undefined behavior
+     /wd4293                                                                           # warning C4293: '>>': shift count negative or too big, undefined behavior (common/ringbuffer.cpp INTEL32 if-constexpr discarded branch)
    )
 
-# When ANGLE is on, CMAKE_CXX_STANDARD is unset at the end of ThirdPartyLibraries (D9025 fix);
-# OpenAL Soft 1.24 then needs an explicit per-file /std:c++17. Without ANGLE the global
-# set(CMAKE_CXX_STANDARD 17) in the OpenAL block already covers it — do not duplicate the flag.
-if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
-  list(INSERT GEN_ThirdPartyLibraries_Warnings_MSVC_OpenAL 0 /std:c++17)
-endif()
-
 set( GEN_ThirdPartyLibraries_Warnings_GCC_OpenAL
+     -std=c++17                                                                        # OpenAL Soft 1.24 needs C++17; GoogleTest may reset CMAKE_CXX_STANDARD to 14 afterward
      -DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC — do not pollute the target)
      # -Wno-conversion
      # -Wno-sign-compare
@@ -595,6 +590,7 @@ set( GEN_ThirdPartyLibraries_Warnings_GCC_OpenAL
    )
 
 set( GEN_ThirdPartyLibraries_Warnings_CLANG_OpenAL
+     -std=c++17                                                                        # OpenAL Soft 1.24 needs C++17; same GoogleTest CXX_STANDARD reset as GCC
      -DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC)
      # -Wno-conversion
      # -Wno-sign-compare
@@ -605,6 +601,7 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_OpenAL
    )
 
 set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL
+     /std:c++17                                                                        # OpenAL Soft 1.24 needs C++17; same GoogleTest/ANGLE CXX_STANDARD reset as MSVC
      /DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC)
      # /wd4244                                                                         # warning C4244: conversion, possible loss of data
      # /wd4267                                                                         # warning C4267: conversion from 'size_t', possible loss of data
@@ -614,12 +611,9 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL
      # -Wno-unused-variable
      # -Wno-unused-parameter
      # -Wno-implicit-fallthrough
+     /wd4293                                                                           # warning C4293: '>>': shift count negative or too big (ringbuffer.cpp; clang-cl accepts /wd)
      -Wno-invalid-offsetof
    )
-
-if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
-  list(INSERT GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL 0 /std:c++17)
-endif()
 
 
 # --------------------------------------------------------------------

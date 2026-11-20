@@ -14,6 +14,7 @@
 "../../../Examples/Graphics/UI_Options"           "ui_options"                  "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
 "../../../Examples/Graphics/UI_Message"           "ui_message"                  "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
 "../../../Examples/Graphics/UI_System"            "ui_system"                   "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
+"../../../Examples/Graphics/UI_Console"           "ui_console"                  "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
 "../../../Examples/Graphics/StaticticsCharts"     "staticticscharts"            "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
 "../../../Examples/Graphics/WindowChromes"        "windowchromes"               "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"
 "../../../Tests/DevTests_Console"                 "devtests_console"            "INTEL32 INTEL64 ARM64 RPI64"
@@ -33,3 +34,4 @@
 "../../../Utilities/APPUpdateCreator"             "appupdatecreator"            "INTEL32 INTEL64 ARM64 RPI64"
 "../../../Utilities/TranslateScan"                "translatescan"               "INTEL32 INTEL64 ARM64 RPI64"
 "../../../Utilities/ActionScriptQA"               "actionscriptqa"              "INTEL32 INTEL64 ARM64 RPI64"
+"../../../Utilities/XTraceMonitor"                "xtracemonitor"               "INTEL32 INTEL64 ARM64 RPI64 ANDROID32 ANDROID64"

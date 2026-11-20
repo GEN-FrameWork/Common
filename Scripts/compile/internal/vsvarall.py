@@ -48,8 +48,9 @@ def normalize_compiler(compiler: Optional[str]) -> str:
     if compiler:
         value = compiler.strip().upper()
     else:
+        # Match compile.py: clang-cl unless the batch explicitly asked for MSVC.
         use_clang = os.environ.get("USE_CLANG_EXTCFG", "").strip().upper()
-        value = "CLANG" if use_clang == "CLANG" else "MSC"
+        value = "MSC" if use_clang == "NOTCLANG" else "CLANG"
 
     if value not in SUPPORTED_COMPILERS:
         raise ValueError(f"Unsupported compiler: {value}")

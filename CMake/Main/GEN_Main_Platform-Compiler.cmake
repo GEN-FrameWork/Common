@@ -374,14 +374,39 @@ if(COMPILE_FOR_WINDOWS)
 
   include("${GEN_DIRECTORY}/Common/CMake/Main/GEN_Main_Compiler_Windows.cmake")
 
-  if(USE_CLANG_CTRL_FEATURE AND NOT COMPILE_WITH_CLANG_CL)
+  # COMPILE_WITH_CLANG_CL follows the active compiler, not only USE_CLANG_*.
+  # Otherwise MSVC cl.exe inherits -Wno-* and fails with D8021.
+  set(_GEN_WIN_IS_CLANG_CL FALSE)
+  if((CMAKE_C_COMPILER_ID MATCHES "^(Clang|AppleClang)$" OR CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$") AND
+     (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+    set(_GEN_WIN_IS_CLANG_CL TRUE)
+  endif()
 
-    unset(COMPILE_WITH_MSVC     CACHE)
-    unset(COMPILE_WITH_CLANG_CL CACHE)
+  if(_GEN_WIN_IS_CLANG_CL)
 
-    add_definitions(-DCOMPILER_CLANG_CL)
-    option(COMPILE_WITH_CLANG_CL                                "Compile with CLang (interface MSVC)"                     ON )
-    message(STATUS "[ GEN Select for compile: CLang CLI (interface MSVC) ${USE_CLANG_CTRL_MSG} ]")
+    if(NOT COMPILE_WITH_CLANG_CL)
+
+      unset(COMPILE_WITH_MSVC     CACHE)
+      unset(COMPILE_WITH_CLANG_CL CACHE)
+
+      add_definitions(-DCOMPILER_CLANG_CL)
+      option(COMPILE_WITH_CLANG_CL                                "Compile with CLang (interface MSVC)"                     ON )
+      message(STATUS "[ GEN Select for compile: CLang CLI (interface MSVC) ${USE_CLANG_CTRL_MSG} ]")
+
+    endif()
+
+  else()
+
+    if(COMPILE_WITH_CLANG_CL)
+      unset(COMPILE_WITH_CLANG_CL CACHE)
+    endif()
+
+    # Project/external asked for Clang CLI but project() locked MSVC cl.exe.
+    # Do not fall back silently — flags would be clang-cl (-Wno-*) on cl.exe (D8021).
+    # Seed clang-cl before project() via compile.py (default unless NOTCLANG) or the Windows preset.
+    if(USE_CLANG_CTRL_FEATURE)
+      message(FATAL_ERROR "[ GEN ] USE_CLANG is ON (${USE_CLANG_CTRL_MSG}) but active compiler is ${CMAKE_C_COMPILER_ID} (${CMAKE_C_COMPILER}). Pass clang-cl before project() (compile.py without NOTCLANG, or Windows CMake preset CMAKE_C_COMPILER=clang-cl). For MSVC use NOTCLANG.")
+    endif()
 
   endif()
 
