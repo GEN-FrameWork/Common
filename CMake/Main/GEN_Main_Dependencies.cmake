@@ -1860,6 +1860,11 @@ if(XTRANSLATION_FEATURE)
   add_definitions(-DXTRANSLATION_ACTIVE)    
     
   option(XFILE_JSON_FEATURE                                       "XFile JSON format"                                       ON )
+  # XTranslation.cpp loads .lng catalogues through XFILEXML — require the XML module.
+  option(XFILE_XML_FEATURE                                        "XFile XML format"                                        ON )
+  if(NOT XFILE_XML_FEATURE)
+    set(XFILE_XML_FEATURE ON CACHE BOOL "XFile XML format (required by XTRANSLATION)" FORCE)
+  endif()
   option(XTRANSLATION_GEN_FEATURE                                 "Translation GEN"                                         ON )
   # SetActual() uses GEN_XSYSTEM.GetLanguageSO() — require XSYSTEM when translation is on.
   # Force after the earlier XSYSTEM_FEATURE/add_definitions block so Sources_* pick it up.

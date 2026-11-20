@@ -220,6 +220,15 @@ def read_compile_status_file(status_file: Path) -> tuple[list[str], list[str]]:
 
 
 
+def windows_wants_clang_cl(use_clang_extcfg: str) -> bool:
+    """True unless the batch explicitly asked for MSVC (NOTCLANG).
+
+    Project CMakeLists default USE_CLANG_COMPILER_FEATURE ON; clang-cl must be
+    seeded before project() (cannot FORCE after). NONE/CLANG → clang-cl; NOTCLANG → cl.exe.
+    """
+    return (use_clang_extcfg or '').strip().upper() != 'NOTCLANG'
+
+
 def load_vs_environment_for_platform(
     script_directory: Path,
     platform_name: str,
@@ -228,7 +237,7 @@ def load_vs_environment_for_platform(
     if os.name != 'nt':
         return {}
 
-    compiler_name = 'CLANG' if settings.get('USE_CLANG_EXTCFG', '').upper() == 'CLANG' else 'MSC'
+    compiler_name = 'CLANG' if windows_wants_clang_cl(settings.get('USE_CLANG_EXTCFG', '')) else 'MSC'
     vsvarall_script = script_directory / 'internal' / 'vsvarall.py'
     if not vsvarall_script.exists():
         raise FileNotFoundError(f'vsvarall.py not found: {vsvarall_script}')
@@ -300,7 +309,8 @@ def build_windows_clang_cmake_arguments(
     """Pass compiler/arch to cmake before project() so INTEL32 try_compile is X86."""
     if os.name != 'nt':
         return []
-    if effective_environment.get('USE_CLANG_EXTCFG', '').upper() != 'CLANG':
+    # Seed clang-cl unless NOTCLANG — matches project USE_CLANG_COMPILER_FEATURE ON.
+    if not windows_wants_clang_cl(effective_environment.get('USE_CLANG_EXTCFG', '')):
         return []
     if target not in {'INTEL32', 'INTEL64'}:
         return []

@@ -49,7 +49,15 @@ macro(_GEN_WIN_SET_CLANG_MFLAG _mflag)
 endmacro()
 
 
-if(USE_CLANG_CTRL_FEATURE)
+# Active toolchain must drive flags. Project/external USE_CLANG alone must not
+# inject -Wno-* / /clang:-m* into a real MSVC cl.exe (D8021).
+set(_GEN_WIN_USING_CLANG_CL FALSE)
+if((CMAKE_C_COMPILER_ID MATCHES "^(Clang|AppleClang)$" OR CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$") AND
+   (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
+  set(_GEN_WIN_USING_CLANG_CL TRUE)
+endif()
+
+if(USE_CLANG_CTRL_FEATURE AND _GEN_WIN_USING_CLANG_CL)
 
   find_program(_GEN_CLANG_CL NAMES clang-cl)
   if(NOT _GEN_CLANG_CL)
@@ -100,6 +108,16 @@ if(USE_CLANG_CTRL_FEATURE)
 
 else()
 
+  # MSVC path: USE_CLANG_CTRL_FEATURE must be OFF here (NOTCLANG or no clang request).
+  # If USE_CLANG is ON with cl.exe, GEN_Main_Platform-Compiler.cmake FATAL_ERRORs above.
+
+  if(COMPILE_FOR_WINDOWS_INTEL_32)
+    _GEN_WIN_SET_LINKER_MACHINE(X86)
+  endif()
+
+  if(COMPILE_FOR_WINDOWS_INTEL_64)
+    _GEN_WIN_SET_LINKER_MACHINE(X64)
+  endif()
 
   if(WINDOWS_APPMODE_DINAMIC)
 
