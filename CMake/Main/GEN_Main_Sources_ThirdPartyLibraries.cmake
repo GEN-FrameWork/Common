@@ -4,7 +4,8 @@
 # --------------------------------------------------------------------
 
 
-if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+# ANGLE is a Windows GLES translator; compile with desktop graphics when the feature is on.
+if(GRP_FEATURE AND COMPILE_FOR_WINDOWS AND THIRDPARTYLIBRARIES_ANGLE_FEATURE)
 
   list(APPEND GEN_THIRDPARTY_LIBRARYS ANGLE)
 
@@ -61,7 +62,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   set(GEN_TPL_SOURCES)
 
   # -------------------------------------------------------
-  # common  – utilidades base, sin dependencias de plataforma
+  # common  ï¿½ utilidades base, sin dependencias de plataforma
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/CompiledShaderState.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/Float16ToFloat32.cpp")
@@ -95,7 +96,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/third_party/xxhash/xxhash.c")
 
   # -------------------------------------------------------
-  # image_util  – carga/conversión de formatos de textura
+  # image_util  ï¿½ carga/conversiï¿½n de formatos de textura
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/image_util/copyimage.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/image_util/imageformats.cpp")
@@ -107,13 +108,13 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/image_util/AstcDecompressorNoOp.cpp")
 
   # -------------------------------------------------------
-  # gpu_info_util  – detección de GPU (necesario para Display)
+  # gpu_info_util  ï¿½ detecciï¿½n de GPU (necesario para Display)
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/gpu_info_util/SystemInfo.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/gpu_info_util/SystemInfo_win.cpp")
   
   # -------------------------------------------------------
-  # compiler/preprocessor  – preprocesador GLSL
+  # compiler/preprocessor  ï¿½ preprocesador GLSL
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/preprocessor/DiagnosticsBase.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/preprocessor/DirectiveHandlerBase.cpp")
@@ -128,8 +129,8 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/preprocessor/preprocessor_tab_autogen.cpp")
 
   # -------------------------------------------------------
-  # compiler/translator  – compilador de shaders GLSL ES
-  # Núcleo (independiente de backend)
+  # compiler/translator  ï¿½ compilador de shaders GLSL ES
+  # Nï¿½cleo (independiente de backend)
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/BaseTypes.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/BuiltInFunctionEmulator.cpp")
@@ -175,7 +176,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_lex_autogen.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_tab_autogen.cpp")
 
-  # tree_util (utilidades de recorrido del AST – compartidas por todos los backends)
+  # tree_util (utilidades de recorrido del AST ï¿½ compartidas por todos los backends)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_util/DriverUniform.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_util/FindFunction.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_util/FindMain.cpp")
@@ -230,14 +231,14 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/SimplifyLoopConditions.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/SplitSequenceOperator.cpp")
 
-  # tree_ops/glsl (transformaciones específicas del backend GLSL – Windows y Linux)
+  # tree_ops/glsl (transformaciones especï¿½ficas del backend GLSL ï¿½ Windows y Linux)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/glsl/ExpandFragmentOutputsToVec4.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/glsl/RegenerateStructNames.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/glsl/RewriteRepeatedAssignToSwizzled.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/glsl/UseInterfaceBlockFields.cpp")
 
-  # tree_ops/hlsl (solo Windows – traducción a HLSL/D3D via WGL no aplica, pero
-  # CodeGen.cpp los referencia en tiempo de compilación; incluir si se activa D3D)
+  # tree_ops/hlsl (solo Windows ï¿½ traducciï¿½n a HLSL/D3D via WGL no aplica, pero
+  # CodeGen.cpp los referencia en tiempo de compilaciï¿½n; incluir si se activa D3D)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/hlsl/ArrayReturnValueToOutParameter.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/hlsl/BreakVariableAliasingInInnerLoops.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/hlsl/ExpandIntegerPowExpressions.cpp")
@@ -251,7 +252,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/hlsl/UnfoldShortCircuitToIf.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/tree_ops/hlsl/WrapSwitchStatementsInBlocks.cpp")
 
-  # translator/glsl – backend de salida GLSL (Windows WGL + Linux GLX/EGL)
+  # translator/glsl ï¿½ backend de salida GLSL (Windows WGL + Linux GLX/EGL)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glsl/BuiltInFunctionEmulatorGLSL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glsl/ExtensionGLSL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glsl/OutputESSL.cpp")
@@ -261,7 +262,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glsl/TranslatorGLSL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glsl/VersionGLSL.cpp")
 
-  # translator/hlsl – backend HLSL (solo Windows con renderer D3D, si aplica)
+  # translator/hlsl ï¿½ backend HLSL (solo Windows con renderer D3D, si aplica)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/hlsl/ASTMetadataHLSL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/hlsl/BuiltInFunctionEmulatorHLSL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/hlsl/ImageFunctionHLSL.cpp")
@@ -275,7 +276,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/hlsl/emulated_builtin_functions_hlsl_autogen.cpp")
   
   # -------------------------------------------------------
-  # libANGLE  – núcleo de la implementación EGL/GLES
+  # libANGLE  ï¿½ nï¿½cleo de la implementaciï¿½n EGL/GLES
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/AttributeMap.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/BlobCache.cpp")
@@ -352,7 +353,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/capture/FrameCapture_mock.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/capture/serialize_mock.cpp")
 
-  # libANGLE/renderer – capa de abstracción del renderer (base, independiente)
+  # libANGLE/renderer ï¿½ capa de abstracciï¿½n del renderer (base, independiente)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/BufferImpl.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/ContextImpl.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/DeviceImpl.cpp")
@@ -380,7 +381,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/dxgi_format_map_autogen.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/dxgi_support_table_autogen.cpp")
   
-  # renderer/gl – implementación OpenGL nativa (base, común a WGL/GLX/EGL)
+  # renderer/gl ï¿½ implementaciï¿½n OpenGL nativa (base, comï¿½n a WGL/GLX/EGL)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/BlitGL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/BufferGL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/ClearMultiviewGL.cpp")
@@ -411,7 +412,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/formatutilsgl.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/renderergl_utils.cpp")
 
-  # renderer/gl/wgl – backend Windows (WGL sobre OpenGL nativo)
+  # renderer/gl/wgl ï¿½ backend Windows (WGL sobre OpenGL nativo)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/wgl/ContextWGL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/wgl/D3DTextureSurfaceWGL.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libANGLE/renderer/gl/wgl/DXGISwapChainWindowSurfaceWGL.cpp")
@@ -424,7 +425,7 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   
   
   # -------------------------------------------------------
-  # libGLESv2  – entry points de GLES2/3 y EGL
+  # libGLESv2  ï¿½ entry points de GLES2/3 y EGL
   # -------------------------------------------------------
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libGLESv2/egl_stubs.cpp")
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libGLESv2/egl_ext_stubs.cpp")
@@ -443,18 +444,17 @@ if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
   list(APPEND GEN_TPL_SOURCES "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/libEGL/libEGL_autogen.cpp")
 
   list(APPEND GEN_SOURCES_MODULES_LIST ${GEN_TPL_SOURCES})
-    
-  set_source_files_properties(${GEN_TPL_SOURCES} PROPERTIES COMPILE_FLAGS "/std:c++20")
 
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_lex_autogen.cpp"
-                              "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/compiler/translator/glslang_tab_autogen.cpp"
-                                PROPERTIES COMPILE_FLAGS "/std:c++20 /URESTRICT"
-                              )
-
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/third_party/xxhash/xxhash.c" PROPERTIES COMPILE_FLAGS "" )
-  set_source_files_properties("${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/third_party/libXNVCtrl/NVCtrl.c"    PROPERTIES COMPILE_FLAGS "" )
-    
+  # C++20 for ANGLE TUs lives in GEN_Main_Warnings.cmake
+  # (GEN_ThirdPartyLibraries_Warnings_MSVC_ANGLE / _CLANG_CL_ANGLE) â€” not hardcoded here.
   GEN_ThirdPartyLibraries_SuppressWarnings(ANGLE ${GEN_TPL_SOURCES})
+
+  # Pure C sources must not keep /std:c++20 from the ANGLE warning list.
+  set_source_files_properties(
+    "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/common/third_party/xxhash/xxhash.c"
+    "${GEN_DIRECTORY_THIRDPARTYLIBRARIES_ANGLE_SOURCE}/third_party/libXNVCtrl/NVCtrl.c"
+    PROPERTIES COMPILE_FLAGS ""
+  )
 
 endif()
 
@@ -693,8 +693,10 @@ if(THIRDPARTYLIBRARIES_OPENAL_FEATURE)
   add_definitions(-DAL_API=)
 
   add_definitions(-DNOMINMAX)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)  
-  add_definitions(-DRESTRICT=__restrict) 
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  # RESTRICT=__restrict is applied per OpenAL TU via GEN_Main_Warnings.cmake
+  # (not add_definitions): a global /DRESTRICT collides with ANGLE glslang's RESTRICT
+  # token and forced /URESTRICT on those two parsers â†’ MSVC D9025.
   add_definitions(-DAL_ALEXT_PROTOTYPES)
   add_definitions(-DCMAKE_INTDIR="Debug")
   add_definitions(-DOpenAL_EXPORTS)
@@ -1175,4 +1177,19 @@ if(GOOGLETEST_FEATURE)
   list(APPEND GEN_SOURCES_MODULES_LIST ${GEN_TPL_SOURCES})
   GEN_ThirdPartyLibraries_SuppressWarnings(GoogleTest ${GEN_TPL_SOURCES})
 
+endif()
+
+
+# --------------------------------------------------------------------
+# ANGLE + MSVC/clang-cl: avoid D9025 (/std:c++17|/std:c++14 overridden by per-file /std:c++20)
+#
+# OpenAL and GoogleTest bump CMAKE_CXX_STANDARD globally for configure-time needs; that flag is
+# then injected on EVERY C++ TU of the app target. ANGLE sources also get /std:c++20 from
+# GEN_ThirdPartyLibraries_Warnings_MSVC_ANGLE / _CLANG_CL_ANGLE â†’ MSVC command-line warning D9025.
+# Drop the directory-level standard here; those libraries already carry the required /std via
+# their Warnings_* lists. App/GEN sources then use the toolchain default (MSVC â‰¥ VS2017: C++14),
+# which covers GEN's C++11 baseline from GEN_Main_Dependencies. No-op when ANGLE is off.
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE AND (COMPILE_WITH_MSVC OR COMPILE_WITH_CLANG_CL))
+  unset(CMAKE_CXX_STANDARD)
+  unset(CMAKE_CXX_STANDARD_REQUIRED)
 endif()

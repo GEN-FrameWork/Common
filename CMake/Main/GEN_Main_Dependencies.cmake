@@ -469,7 +469,7 @@ endif()
 # --------------------------------------------------------------------
 # Scraper Web (child features must enable SCRIPT_* before the Scripts block below)
 
-if(DIO_SCRAPERWEB_PUBLICIP_FEATURE OR DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE OR DIO_SCRAPERWEB_WEATHER_FEATURE OR DIO_SCRAPERWEB_TRANSLATION_FEATURE OR DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE OR DIO_SCRAPERWEB_USERAGENTID_FEATURE)
+if(DIO_SCRAPERWEB_PUBLICIP_FEATURE OR DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE OR DIO_SCRAPERWEB_STATICMAP_FEATURE OR DIO_SCRAPERWEB_WEATHER_FEATURE OR DIO_SCRAPERWEB_TRANSLATION_FEATURE OR DIO_SCRAPERWEB_MACMANUFACTURER_FEATURE OR DIO_SCRAPERWEB_USERAGENTID_FEATURE)
 
   option(DIO_SCRAPERWEB_FEATURE                                   "Scraper Web"                                             ON )
 
@@ -844,19 +844,75 @@ if(GRP_FEATURE)
   endif()
 
 
-  if(GRP_OPENGL_FEATURE)
+  # Windows GDI-only present path
+  # -------------------
+  # When ON (Windows only): defines GRP_WINDOWS_GDI_ACTIVE, does NOT define GRP_OPENGL_ACTIVE,
+  # and force-disables ANGLE so it is neither compiled nor linked. All GEN Windows screens use GDI.
+  # Default OFF — other apps keep the fat-binary try-GLES + GDI fallback behaviour.
+  # Takes precedence over GRP_OPENGL_FEATURE on Windows.
+  option(GRP_WINDOWS_GDI_FEATURE                                  "Windows graphics: force GDI only (no ANGLE/GLES)"         OFF )
+
+  # OpenGL ES present path
+  # -------------------
+  # Windows / Linux: always compile GLES (+ ANGLE on Windows) into graphics apps (fat binary),
+  # unless GRP_WINDOWS_GDI_FEATURE is ON (Windows GDI-only).
+  # Runtime tries GLES first; if init fails the screen falls back to GDI / X11 / Wayland SHM.
+  # GRP_OPENGL_FEATURE = ON means GLES is REQUIRED (Create fails hard — no software fallback).
+  # Android: unchanged — GLES only when GRP_OPENGL_FEATURE is ON (always available on device).
+  option(GRP_OPENGL_FEATURE                                       "Graphics OpenGL ES required (OFF = try + software fallback)" OFF )
+
+  if(COMPILE_FOR_WINDOWS AND GRP_WINDOWS_GDI_FEATURE)
+
+    add_definitions(-DGRP_WINDOWS_GDI_ACTIVE)
+
+    # Sticky cache from a prior ANGLE configure must not leave the library in the link.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
+    message(STATUS "[ GEN Windows present and forced to GDI (ANGLE/GLES disabled)]")
+
+    if(GRP_OPENGL_FEATURE)
+      message(WARNING "[ GEN overrides GRP_OPENGL_FEATURE on Windows (GDI-only build)]")
+    endif()
+
+  elseif(COMPILE_FOR_WINDOWS OR COMPILE_FOR_LINUX)
 
     add_definitions(-DGRP_OPENGL_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_ACTIVE)
     add_definitions(-DGRP_OPENGL_ES_VERSION=30)
-    
-   
+
+    if(GRP_OPENGL_FEATURE)
+
+      add_definitions(-DGRP_OPENGL_REQUIRED)
+
+    endif()
+
     if(COMPILE_FOR_WINDOWS)
 
+      # ANGLE is Windows-only and only meaningful with OpenGL ES present.
       option(THIRDPARTYLIBRARIES_ANGLE_FEATURE                        "Angle OpenGL ES Library (Windows only)"                  ON )
-    
+
     endif()
-    
+
+  elseif(COMPILE_FOR_ANDROID32 OR COMPILE_FOR_ANDROID64)
+
+    if(GRP_OPENGL_FEATURE)
+
+      add_definitions(-DGRP_OPENGL_ACTIVE)
+      add_definitions(-DGRP_OPENGL_ES_ACTIVE)
+      add_definitions(-DGRP_OPENGL_ES_VERSION=30)
+
+    endif()
+
+    # Android never links ANGLE.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
+  else()
+
+    # Force-clear sticky CMake cache: a prior configure with graphics+ANGLE leaves
+    # THIRDPARTYLIBRARIES_ANGLE_FEATURE=ON; without this FORCE, non-desktop builds
+    # still compile/link the entire static ANGLE tree into the executable.
+    set(THIRDPARTYLIBRARIES_ANGLE_FEATURE OFF CACHE BOOL "Angle OpenGL ES Library (Windows only)" FORCE)
+
   endif()
 
 
@@ -1266,6 +1322,13 @@ if(DIO_FEATURE)
   if(DIO_SCRAPERWEB_GEOLOCATIONIP_FEATURE)
 
     add_definitions(-DDIO_SCRAPERWEB_GEOLOCATIONIP_ACTIVE)
+
+  endif()
+
+
+  if(DIO_SCRAPERWEB_STATICMAP_FEATURE)
+
+    add_definitions(-DDIO_SCRAPERWEB_STATICMAP_ACTIVE)
 
   endif()
 
@@ -1820,6 +1883,21 @@ endif()
 if(XSLEEP_FEATURE)
 
   add_definitions(-DXSLEEP_ACTIVE) 
+
+endif()
+
+
+if(XCLIPBOARD_FEATURE)
+
+  add_definitions(-DXCLIPBOARD_ACTIVE)
+
+  # Linux clipboard uses X11 CLIPBOARD / UTF8_STRING (Xlib).
+  if(COMPILE_FOR_LINUX)
+    option(LINUX_X11_FEATURE                                      "Linux X11"                                               ON )
+    if(LINUX_X11_FEATURE)
+      add_definitions(-DLINUX_X11_ACTIVE)
+    endif()
+  endif()
 
 endif()
 

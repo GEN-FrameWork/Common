@@ -18,30 +18,32 @@ if(GRP_FEATURE)
 
   endif()
 
-  if(GRP_OPENGL_FEATURE)
+  # Windows GLES blitter (skipped when GRP_WINDOWS_GDI_FEATURE forces GDI-only).
+  if(NOT GRP_WINDOWS_GDI_FEATURE)
 
     list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_PLATFORMS_WINDOWS}/GRPWINDOWSBlitGLES.cpp")
 
-
-    # ANGLE: open-source (BSD-3) Google translator GLES -> D3D11.
-    # Expected layout: ${GEN_DIRECTORY_THIRDPARTYLIBRARIES}/angle/{include,lib/{x86,x64},bin}
-    
-    #    set(ANGLE_DIR "${GEN_DIRECTORY_THIRDPARTYLIBRARIES}/angle")
-    #    list(APPEND GEN_INCLUDES_DIR_LIST "${ANGLE_DIR}/include")
-
-    #    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    #      set(ANGLE_LIBDIR "${ANGLE_DIR}/lib/x64")
-    #    else()
-    #      set(ANGLE_LIBDIR "${ANGLE_DIR}/lib/x86")
-    #    endif()
-
-    #    list(APPEND GEN_LIBS_LIST "${ANGLE_LIBDIR}/libEGL.lib" "${ANGLE_LIBDIR}/libGLESv2.lib")
-
-    # Copy ANGLE runtime DLLs next to the produced executable
-    #    set(ANGLE_BINDIR "${ANGLE_DIR}/bin")
-    #    install(FILES "${ANGLE_BINDIR}/libEGL.dll" "${ANGLE_BINDIR}/libGLESv2.dll" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
   endif()
+
+
+  # ANGLE: open-source (BSD-3) Google translator GLES -> D3D11.
+  # Expected layout: ${GEN_DIRECTORY_THIRDPARTYLIBRARIES}/angle/{include,lib/{x86,x64},bin}
+    
+  #    set(ANGLE_DIR "${GEN_DIRECTORY_THIRDPARTYLIBRARIES}/angle")
+  #    list(APPEND GEN_INCLUDES_DIR_LIST "${ANGLE_DIR}/include")
+
+  #    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  #      set(ANGLE_LIBDIR "${ANGLE_DIR}/lib/x64")
+  #    else()
+  #      set(ANGLE_LIBDIR "${ANGLE_DIR}/lib/x86")
+  #    endif()
+
+  #    list(APPEND GEN_LIBS_LIST "${ANGLE_LIBDIR}/libEGL.lib" "${ANGLE_LIBDIR}/libGLESv2.lib")
+
+  # Copy ANGLE runtime DLLs next to the produced executable
+  #    set(ANGLE_BINDIR "${ANGLE_DIR}/bin")
+  #    install(FILES "${ANGLE_BINDIR}/libEGL.dll" "${ANGLE_BINDIR}/libGLESv2.dll" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
 
 endif()
 
@@ -264,6 +266,13 @@ endif()
 if(XSLEEP_FEATURE)
 
   list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_PLATFORMS_WINDOWS}/XWINDOWSSleep.cpp")
+
+endif()
+
+
+if(XCLIPBOARD_FEATURE)
+
+  list(APPEND GEN_SOURCES_MODULES_LIST "${GEN_DIRECTORY_SOURCES_PLATFORMS_WINDOWS}/XWINDOWSClipboard.cpp")
 
 endif()
 

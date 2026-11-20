@@ -12,6 +12,9 @@ add_definitions(${GEN_MACRO})
 set(GEN_MACRO  "-DGEN_XSLEEP=XSLEEP::GetInstance()")
 add_definitions(${GEN_MACRO})
 
+set(GEN_MACRO  "-DGEN_XCLIPBOARD=XCLIPBOARD::GetInstance()")
+add_definitions(${GEN_MACRO})
+
 set(GEN_MACRO  "-DGEN_XLOG=XLOG::GetInstance()")
 add_definitions(${GEN_MACRO})
 

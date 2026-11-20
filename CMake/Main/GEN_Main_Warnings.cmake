@@ -264,10 +264,11 @@ macro(GEN_ThirdPartyLibraries_SuppressWarnings LIB_NAME)
 
     foreach(_GEN_TPLIBRARIES_FILE ${ARGN})
 
-      # Use APPEND_STRING so that if a source file is processed by more than one
-      # library suppression call the flags accumulate instead of overwriting.
-      set_source_files_properties("${_GEN_TPLIBRARIES_FILE}" PROPERTIES
-        COMPILE_FLAGS "${_GEN_TPLIBRARIES_FLAGS_STR}"
+      # APPEND_STRING: flags accumulate when a source is touched by more than one
+      # suppression call (or by a prior set_source_files_properties). Leading space
+      # keeps tokens separated when appending to a non-empty COMPILE_FLAGS value.
+      set_property(SOURCE "${_GEN_TPLIBRARIES_FILE}" APPEND_STRING PROPERTY
+        COMPILE_FLAGS " ${_GEN_TPLIBRARIES_FLAGS_STR}"
       )
 
     endforeach()
@@ -301,6 +302,28 @@ endmacro()
 # Only the variable set matching the active compiler will be applied.
 # Any library not listed here will compile with no extra suppression.
 # --------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------
+# ANGLE (Windows-only GLES translator)
+#
+# Requires C++20. Applied per TU via SuppressWarnings so the application target can
+# keep GEN's default CMAKE_CXX_STANDARD (see restore at end of
+# GEN_Main_Sources_ThirdPartyLibraries.cmake). That avoids MSVC D9025
+# (overriding /std:c++17 from OpenAL's global CMAKE_CXX_STANDARD bump with
+# per-file /std:c++20). GCC/Clang lists stay empty — ANGLE is not built there.
+
+set( GEN_ThirdPartyLibraries_Warnings_MSVC_ANGLE
+     /std:c++20                                                                        # ANGLE requires C++20 (MSVC); per-file so the app target is not forced to C++20
+   )
+
+set( GEN_ThirdPartyLibraries_Warnings_GCC_ANGLE )                                      # (not used — ANGLE is Windows-only)
+
+set( GEN_ThirdPartyLibraries_Warnings_CLANG_ANGLE )                                    # (not used — ANGLE is Windows-only)
+
+set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_ANGLE
+     /std:c++20                                                                        # ANGLE requires C++20 (clang-cl); same rationale as MSVC
+   )
 
 
 # --------------------------------------------------------------------
@@ -543,6 +566,7 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_DuckTape
 # OpenAL 
 
 set( GEN_ThirdPartyLibraries_Warnings_MSVC_OpenAL
+     /DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (global /D broke ANGLE glslang RESTRICT token → /URESTRICT D9025)
      # /wd4244                                                                         # warning C4244: conversion, possible loss of data
      # /wd4267                                                                         # warning C4267: conversion from 'size_t', possible loss of data
      # /wd4324                                                                         # warning C4324: structure was padded due to alignment specifier
@@ -551,7 +575,15 @@ set( GEN_ThirdPartyLibraries_Warnings_MSVC_OpenAL
      /wd4293                                                                           # warning C4293: '>>': shift count negative or too big, undefined behavior
    )
 
+# When ANGLE is on, CMAKE_CXX_STANDARD is unset at the end of ThirdPartyLibraries (D9025 fix);
+# OpenAL Soft 1.24 then needs an explicit per-file /std:c++17. Without ANGLE the global
+# set(CMAKE_CXX_STANDARD 17) in the OpenAL block already covers it — do not duplicate the flag.
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+  list(INSERT GEN_ThirdPartyLibraries_Warnings_MSVC_OpenAL 0 /std:c++17)
+endif()
+
 set( GEN_ThirdPartyLibraries_Warnings_GCC_OpenAL
+     -DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC — do not pollute the target)
      # -Wno-conversion
      # -Wno-sign-compare
      # -Wno-unused-variable
@@ -563,6 +595,7 @@ set( GEN_ThirdPartyLibraries_Warnings_GCC_OpenAL
    )
 
 set( GEN_ThirdPartyLibraries_Warnings_CLANG_OpenAL
+     -DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC)
      # -Wno-conversion
      # -Wno-sign-compare
      # -Wno-unused-variable
@@ -572,6 +605,7 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_OpenAL
    )
 
 set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL
+     /DRESTRICT=__restrict                                                             # OpenAL Soft needs RESTRICT; per-TU (same rationale as MSVC)
      # /wd4244                                                                         # warning C4244: conversion, possible loss of data
      # /wd4267                                                                         # warning C4267: conversion from 'size_t', possible loss of data
      # /wd4324                                                                         # warning C4324: structure was padded due to alignment specifier
@@ -582,6 +616,10 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL
      # -Wno-implicit-fallthrough
      -Wno-invalid-offsetof
    )
+
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+  list(INSERT GEN_ThirdPartyLibraries_Warnings_CLANG_CL_OpenAL 0 /std:c++17)
+endif()
 
 
 # --------------------------------------------------------------------
@@ -650,7 +688,11 @@ set( GEN_ThirdPartyLibraries_Warnings_MSVC_GoogleTest
      # /wd4389                                                                         # warning C4389: '==': signed/unsigned mismatch
      # /wd4100                                                                         # warning C4100: unreferenced formal parameter
    
-   )     
+   )
+
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+  list(INSERT GEN_ThirdPartyLibraries_Warnings_MSVC_GoogleTest 0 /std:c++14)
+endif()
 
 set( GEN_ThirdPartyLibraries_Warnings_GCC_GoogleTest
      # -Wno-conversion
@@ -668,6 +710,10 @@ set( GEN_ThirdPartyLibraries_Warnings_CLANG_CL_GoogleTest
      # -Wno-conversion
      # -Wno-sign-compare
    )
+
+if(THIRDPARTYLIBRARIES_ANGLE_FEATURE)
+  list(INSERT GEN_ThirdPartyLibraries_Warnings_CLANG_CL_GoogleTest 0 /std:c++14)
+endif()
 
 
 
