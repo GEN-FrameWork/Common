@@ -122,6 +122,9 @@ if(XTRACE_FEATURE)
   endif()
 
 endif()
+
+# XTRACE_SERVER_* transports are resolved after SCRIPT_LIB (below): SCRIPT_LIB_TRACESERVER
+# may enable XTRACE_SERVER_UDP_FEATURE, and DIO_*_ACTIVE must see the resulting options.
  
 
 # --------------------------------------------------------------------
@@ -534,9 +537,7 @@ if(SCRIPT_FEATURE)
 
     add_definitions("-DSCRIPT_LIB_TRACESERVER_ACTIVE")
 
-    option(XTRACE_FEATURE                                         "Activate XTrace"                                         ON )
-    option(DIO_FEATURE                                            "Input/Output"                                            ON )
-    option(DIO_STREAMUDP_FEATURE                                  "Stream UDP"                                              ON )
+    option(XTRACE_SERVER_UDP_FEATURE                              "XTrace receive server UDP"                               ON )
     
   endif()
 
@@ -639,6 +640,67 @@ if(SCRIPT_FEATURE)
     
   endif()
 
+
+endif()
+
+
+# --------------------------------------------------------------------
+# XTrace receive server (after SCRIPT_LIB may enable XTRACE_SERVER_UDP_FEATURE)
+# Any transport feature enables XTRACE_SERVER_FEATURE.
+# XTRACE_SERVER_WINDOWSMSG_FEATURE may stay ON in app CMakeLists; only Windows gets ACTIVE.
+
+if(XTRACE_SERVER_UDP_FEATURE)
+
+  option(XTRACE_SERVER_FEATURE                                    "XTrace receive server"                                   ON )
+  option(DIO_FEATURE                                              "Input/Output"                                            ON )
+  option(DIO_STREAMUDP_FEATURE                                    "Stream UDP"                                              ON )
+  option(XTHREADCOLLECTED_FEATURE                                 "Thread Collected"                                        ON )
+
+  add_definitions(-DXTRACE_SERVER_UDP_ACTIVE)
+
+  message(STATUS "[ GEN Trace Server UDP: Active ]")
+
+endif()
+
+
+if(XTRACE_SERVER_UART_FEATURE)
+
+  option(XTRACE_SERVER_FEATURE                                    "XTrace receive server"                                   ON )
+  option(DIO_FEATURE                                              "Input/Output"                                            ON )
+  option(DIO_STREAMUART_FEATURE                                   "Stream UART"                                             ON )
+  option(XTHREADCOLLECTED_FEATURE                                 "Thread Collected"                                        ON )
+
+  add_definitions(-DXTRACE_SERVER_UART_ACTIVE)
+
+  message(STATUS "[ GEN Trace Server UART: Active ]")
+
+endif()
+
+
+if(XTRACE_SERVER_WINDOWSMSG_FEATURE)
+
+  if(COMPILE_FOR_WINDOWS)
+
+    option(XTRACE_SERVER_FEATURE                                  "XTrace receive server"                                   ON )
+
+    add_definitions(-DXTRACE_SERVER_WINDOWSMSG_ACTIVE)
+
+    message(STATUS "[ GEN Trace Server WindowsMsg: Active ]")
+
+  else()
+
+    message(STATUS "[ GEN Trace Server WindowsMsg: skipped (not Windows) ]")
+
+  endif()
+
+endif()
+
+
+if(XTRACE_SERVER_FEATURE)
+
+  add_definitions(-DXTRACE_SERVER_ACTIVE)
+
+  message(STATUS "[ GEN Trace Server: Active ]")
 
 endif()
 
