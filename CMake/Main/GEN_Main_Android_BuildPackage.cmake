@@ -293,29 +293,36 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
 
     message(STATUS "[ AAPT input dir    : ${_GEN_ANDROID_AAPT_INPUT_DIR} ]")
 
-    set(_GEN_ANDROID_PACKAGE_ASSETS_DIR "")
-    set(_GEN_ANDROID_PACKAGE_RES_DIR    "")
+    # Platform package dir: prefer app/Package/Android (new layout), else assets/package (legacy).
+    set(_GEN_ANDROID_PACKAGE_PLATFORM_DIR "")
+    set(_GEN_ANDROID_PACKAGE_RES_DIR      "")
 
     if(NOT _GEN_ANDROID_ASSETS_DIR STREQUAL "")
-      if(EXISTS "${_GEN_ANDROID_ASSETS_DIR}/package")
-        set(_GEN_ANDROID_PACKAGE_ASSETS_DIR "${_GEN_ANDROID_ASSETS_DIR}/package")
+      get_filename_component(_GEN_ANDROID_APP_ROOT "${_GEN_ANDROID_ASSETS_DIR}" DIRECTORY)
 
-        if(EXISTS "${_GEN_ANDROID_PACKAGE_ASSETS_DIR}/res")
-          set(_GEN_ANDROID_PACKAGE_RES_DIR "${_GEN_ANDROID_PACKAGE_ASSETS_DIR}/res")
-          file(COPY "${_GEN_ANDROID_PACKAGE_RES_DIR}/" DESTINATION "${_GEN_ANDROID_AAPT_RES_DIR}")
-          message(STATUS "[ Package res       : ${_GEN_ANDROID_PACKAGE_RES_DIR} ]")
-        endif()
+      if(EXISTS "${_GEN_ANDROID_APP_ROOT}/Package/Android")
+        set(_GEN_ANDROID_PACKAGE_PLATFORM_DIR "${_GEN_ANDROID_APP_ROOT}/Package/Android")
+      elseif(EXISTS "${_GEN_ANDROID_ASSETS_DIR}/package")
+        set(_GEN_ANDROID_PACKAGE_PLATFORM_DIR "${_GEN_ANDROID_ASSETS_DIR}/package")
+      endif()
+    endif()
+
+    if(NOT _GEN_ANDROID_PACKAGE_PLATFORM_DIR STREQUAL "")
+      if(EXISTS "${_GEN_ANDROID_PACKAGE_PLATFORM_DIR}/res")
+        set(_GEN_ANDROID_PACKAGE_RES_DIR "${_GEN_ANDROID_PACKAGE_PLATFORM_DIR}/res")
+        file(COPY "${_GEN_ANDROID_PACKAGE_RES_DIR}/" DESTINATION "${_GEN_ANDROID_AAPT_RES_DIR}")
+        message(STATUS "[ Package res       : ${_GEN_ANDROID_PACKAGE_RES_DIR} ]")
       endif()
     endif()
 
     get_filename_component(_GEN_ANDROID_MANIFEST_DIR "${_GEN_ANDROID_MANIFEST_PATH}" DIRECTORY)
     file(MAKE_DIRECTORY "${_GEN_ANDROID_MANIFEST_DIR}")
 
-    # Prefer assets/package/AndroidManifest.xml (placeholders) when the app ships one.
+    # Prefer Package/Android/AndroidManifest.xml (or legacy assets/package) when the app ships one.
     set(_GEN_ANDROID_PACKAGE_MANIFEST "")
-    if(NOT _GEN_ANDROID_PACKAGE_ASSETS_DIR STREQUAL "")
-      if(EXISTS "${_GEN_ANDROID_PACKAGE_ASSETS_DIR}/AndroidManifest.xml")
-        set(_GEN_ANDROID_PACKAGE_MANIFEST "${_GEN_ANDROID_PACKAGE_ASSETS_DIR}/AndroidManifest.xml")
+    if(NOT _GEN_ANDROID_PACKAGE_PLATFORM_DIR STREQUAL "")
+      if(EXISTS "${_GEN_ANDROID_PACKAGE_PLATFORM_DIR}/AndroidManifest.xml")
+        set(_GEN_ANDROID_PACKAGE_MANIFEST "${_GEN_ANDROID_PACKAGE_PLATFORM_DIR}/AndroidManifest.xml")
       endif()
     endif()
 
