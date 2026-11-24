@@ -29,7 +29,13 @@ if(ANDROID32 OR ANDROID64)
   
   if(EXISTS "${ANDROID_NDK}")
     # Force the CMake Toolchain to use the NDK provided in ThirdPartyLibraries
-    set(CMAKE_TOOLCHAIN_FILE "${ANDROID_NDK}/build/CMake/android.toolchain.cmake" CACHE FILEPATH "" FORCE)
+    set(_GEN_ENV_NDK_TOOLCHAIN "${ANDROID_NDK}/build/CMake/android.toolchain.cmake")
+    if(NOT EXISTS "${_GEN_ENV_NDK_TOOLCHAIN}")
+      set(_GEN_ENV_NDK_TOOLCHAIN "${ANDROID_NDK}/build/cmake/android.toolchain.cmake")
+    endif()
+    if(EXISTS "${_GEN_ENV_NDK_TOOLCHAIN}")
+      set(CMAKE_TOOLCHAIN_FILE "${_GEN_ENV_NDK_TOOLCHAIN}" CACHE FILEPATH "" FORCE)
+    endif()
     
     message(STATUS "[ GEN Android Environment detected:")
     message(STATUS "      > NDK: ${ANDROID_NDK}")

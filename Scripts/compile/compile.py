@@ -38,9 +38,13 @@ from internal.shared import (
 )
 
 STAGE_VALUES = {'CMAKE', 'COMPILE', 'TEST'}
-WINDOWS_PLATFORM_VALUES = ('INTEL32', 'INTEL64', 'ANDROID32', 'ANDROID64')
-LINUX_PLATFORM_VALUES = ('INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64')
-KNOWN_PLATFORM_VALUES = set(WINDOWS_PLATFORM_VALUES) | set(LINUX_PLATFORM_VALUES)
+WINDOWS_NATIVE_PLATFORM_VALUES = ('INTEL32', 'INTEL64')
+LINUX_NATIVE_PLATFORM_VALUES = ('INTEL64', 'ARM32', 'ARM64', 'RPI32', 'RPI64')
+ANDROID_PLATFORM_VALUES = ('ANDROID32', 'ANDROID64')
+# Back-compat aliases used by comments / callers that still name the old tuples.
+WINDOWS_PLATFORM_VALUES = WINDOWS_NATIVE_PLATFORM_VALUES + ANDROID_PLATFORM_VALUES
+LINUX_PLATFORM_VALUES = LINUX_NATIVE_PLATFORM_VALUES + ANDROID_PLATFORM_VALUES
+KNOWN_PLATFORM_VALUES = set(WINDOWS_NATIVE_PLATFORM_VALUES) | set(LINUX_NATIVE_PLATFORM_VALUES) | set(ANDROID_PLATFORM_VALUES)
 MODE_VALUES = {'DEBUG', 'RELEASE'}
 USE_CLANG_VALUES = {'CLANG', 'NOTCLANG'}
 MEMORY_VALUES = {'MEMCTRL', 'NOTMEMCTRL'}
@@ -50,16 +54,149 @@ COVERAGE_VALUES = {'COVER', 'NOTCOVER'}
 CMAKE_CREATEDOCKERFILE_VALUES = {'CREATEDOCKERFILE', 'NOTCREATEDOCKERFILE'}
 
 
-def supported_platform_values() -> tuple[str, ...]:
+def framework_root_from_compile_script() -> Path:
+    """GEN_FrameWork root: Common/Scripts/compile/compile.py → parents[3]."""
+    return Path(__file__).resolve().parents[3]
+
+
+def android_host_prebuilt_tag() -> str:
+    """NDK llvm/prebuilt host tag expected for the current compile host."""
     if os.name == 'nt':
-        return WINDOWS_PLATFORM_VALUES
-    return LINUX_PLATFORM_VALUES
+        return 'windows-x86_64'
+    return 'linux-x86_64'
+
+
+def android_host_display_name() -> str:
+    return 'Windows' if os.name == 'nt' else 'Linux'
+
+
+def android_prebuilt_tag_display_name(tag: str) -> str:
+    if tag.startswith('windows'):
+        return 'Windows'
+    if tag.startswith('linux'):
+        return 'Linux'
+    if tag.startswith('darwin'):
+        return 'macOS'
+    return tag
+
+
+def android_ndk_toolchain_file(ndk_root: Path) -> Path | None:
+    """Prefer build/CMake (GEN historical); accept build/cmake (NDK on Linux)."""
+    for relative in ('build/CMake/android.toolchain.cmake', 'build/cmake/android.toolchain.cmake'):
+        candidate = ndk_root / relative
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def android_ndk_installed_prebuilt_tags(ndk_root: Path) -> list[str]:
+    prebuilt_root = ndk_root / 'toolchains' / 'llvm' / 'prebuilt'
+    if not prebuilt_root.is_dir():
+        return []
+    return sorted(path.name for path in prebuilt_root.iterdir() if path.is_dir())
+
+
+def android_sdk_build_tools_hosts(sdk_root: Path) -> list[str]:
+    """Which host flavors are present in android-sdk/build-tools (Windows and/or Linux)."""
+    build_tools = sdk_root / 'build-tools'
+    if not build_tools.is_dir():
+        return []
+    hosts: list[str] = []
+    if any(build_tools.glob('*/aapt.exe')):
+        hosts.append('Windows')
+    if any(build_tools.glob('*/aapt')):
+        hosts.append('Linux')
+    return hosts
+
+
+def android_sdk_has_host_build_tools(sdk_root: Path) -> bool:
+    """True if build-tools contain aapt for this host (Windows .exe / Linux bare)."""
+    expected = android_host_display_name()
+    return expected in android_sdk_build_tools_hosts(sdk_root)
+
+
+def android_sdk_ndk_ready_for_host(repo_root: Path | None = None) -> bool:
+    """
+    Android platforms are enabled only when ThirdPartyLibraries holds the
+    SDK/NDK flavor matching this host (windows-x86_64 or linux-x86_64).
+    Only one flavor can live in those folders at a time.
+    """
+    root = repo_root if repo_root is not None else framework_root_from_compile_script()
+    ndk_root = root / 'ThirdPartyLibraries' / 'android-ndk'
+    sdk_root = root / 'ThirdPartyLibraries' / 'android-sdk'
+    if android_ndk_toolchain_file(ndk_root) is None:
+        return False
+    prebuilt = ndk_root / 'toolchains' / 'llvm' / 'prebuilt' / android_host_prebuilt_tag()
+    if not prebuilt.is_dir():
+        return False
+    if not (sdk_root / 'platforms').is_dir():
+        return False
+    return android_sdk_has_host_build_tools(sdk_root)
+
+
+def android_sdk_ndk_not_ready_message(requested_platform: str, repo_root: Path | None = None) -> str:
+    """Explain installed SDK/NDK host flavor vs current compile host."""
+    root = repo_root if repo_root is not None else framework_root_from_compile_script()
+    ndk_root = root / 'ThirdPartyLibraries' / 'android-ndk'
+    sdk_root = root / 'ThirdPartyLibraries' / 'android-sdk'
+    compile_host = android_host_display_name()
+    expected_tag = android_host_prebuilt_tag()
+
+    ndk_tags = android_ndk_installed_prebuilt_tags(ndk_root)
+    sdk_hosts = android_sdk_build_tools_hosts(sdk_root)
+    ndk_present = android_ndk_toolchain_file(ndk_root) is not None or bool(ndk_tags)
+    sdk_present = (sdk_root / 'platforms').is_dir() or bool(sdk_hosts)
+
+    if not ndk_present and not sdk_present:
+        installed = 'no Android SDK/NDK found under ThirdPartyLibraries'
+    else:
+        parts: list[str] = []
+        if ndk_tags:
+            ndk_hosts = ', '.join(android_prebuilt_tag_display_name(tag) for tag in ndk_tags)
+            parts.append(f'NDK for {ndk_hosts} (prebuilt/{", ".join(ndk_tags)})')
+        elif ndk_present:
+            parts.append('NDK present but without llvm/prebuilt/<host>')
+        else:
+            parts.append('NDK missing')
+        if sdk_hosts:
+            parts.append(f'SDK build-tools for {", ".join(sdk_hosts)}')
+        elif sdk_present:
+            parts.append('SDK present but without host build-tools (aapt)')
+        else:
+            parts.append('SDK missing')
+        installed = '; '.join(parts)
+
+    return (
+        f'[Android SDK/NDK not usable on this host] => {requested_platform}: '
+        f'compile host is {compile_host} (needs NDK prebuilt/{expected_tag} and matching SDK build-tools); '
+        f'installed: {installed}. '
+        f'Only one SDK/NDK host flavor can live in ThirdPartyLibraries; '
+        f'install the {compile_host} packages (InstallAndroid.bat / InstallAndroid.bash --force) '
+        f'or compile on a host that matches the installed flavor.'
+    )
+
+
+def host_native_platform_values() -> tuple[str, ...]:
+    if os.name == 'nt':
+        return WINDOWS_NATIVE_PLATFORM_VALUES
+    return LINUX_NATIVE_PLATFORM_VALUES
+
+
+def supported_platform_values() -> tuple[str, ...]:
+    values = list(host_native_platform_values())
+    if android_sdk_ndk_ready_for_host():
+        values.extend(ANDROID_PLATFORM_VALUES)
+    return tuple(values)
 
 
 def default_platform_values() -> list[str]:
     if os.name == 'nt':
-        return list(WINDOWS_PLATFORM_VALUES)
-    return ['INTEL64', 'ARM64', 'RPI64']
+        platforms = ['INTEL32', 'INTEL64']
+    else:
+        platforms = ['INTEL64', 'ARM64', 'RPI64']
+    if android_sdk_ndk_ready_for_host():
+        platforms.extend(ANDROID_PLATFORM_VALUES)
+    return platforms
 
 
 def validate_variation_params(variation_params: list[str]) -> None:
@@ -68,6 +205,8 @@ def validate_variation_params(variation_params: list[str]) -> None:
     for value in variation_params:
         if value == 'DOCKER' and is_windows_host:
             raise ValueError(f'[Unknown parameter] => {value}')
+        if value in ANDROID_PLATFORM_VALUES and value not in supported_values:
+            raise ValueError(android_sdk_ndk_not_ready_message(value))
         if value in KNOWN_PLATFORM_VALUES and value not in supported_values:
             raise ValueError(f'[Unknown parameter] => {value}')
 
@@ -281,10 +420,16 @@ def load_vs_environment_for_platform(
 def build_android_cmake_arguments(common_root: Path, target: str) -> list[str]:
     repo_root = common_root.parent
     android_ndk_root = repo_root / 'ThirdPartyLibraries' / 'android-ndk'
-    toolchain_file = android_ndk_root / 'build' / 'CMake' / 'android.toolchain.cmake'
+    toolchain_file = android_ndk_toolchain_file(android_ndk_root)
 
-    if not toolchain_file.exists():
-        raise FileNotFoundError(f'Android toolchain file not found: {toolchain_file}')
+    if toolchain_file is None:
+        raise FileNotFoundError(
+            f'Android toolchain file not found under: {android_ndk_root}/build/CMake '
+            f'(or build/cmake)'
+        )
+
+    if not android_sdk_ndk_ready_for_host(repo_root):
+        raise FileNotFoundError(android_sdk_ndk_not_ready_message(target, repo_root))
 
     abi_by_target = {
         'ANDROID32': 'armeabi-v7a',
@@ -531,12 +676,11 @@ def run_compile_stage(
         action_text = 'Compilate project'
     elif stage == 'TEST' and app_entry.name.startswith('unittests_') and target in {'INTEL32', 'INTEL64'}:
         # TEST only ever runs for unittests_* apps on INTEL32/INTEL64, in
-        # DEBUG and RELEASE. Windows-only platforms (ANDROID32/64) and
-        # Linux-only platforms (ARM32/ARM64/RPI32/RPI64) never reach here
-        # because supported_platform_values()/validate_variation_params()
-        # already restrict `platforms` to the current host's list, so
-        # INTEL32 (Windows-only) is simply absent from the loop when
-        # running on Linux, and vice versa for the Linux-only platforms.
+        # DEBUG and RELEASE. ANDROID32/64 are host-gated (Windows or Linux)
+        # only when matching SDK/NDK is present; Linux-only platforms
+        # (ARM32/ARM64/RPI32/RPI64) and Windows-only INTEL32 never reach
+        # here because supported_platform_values()/validate_variation_params()
+        # already restrict `platforms` to the current host's list.
         command = select_test_executable(build_dir, app_entry.name)
         action_text = 'Test project'
     else:

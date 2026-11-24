@@ -122,11 +122,17 @@ if(_GEN_PRE_IS_ANDROID)
       get_filename_component(_GEN_PRE_NDK_TOOLCHAIN
         "${GEN_DIRECTORY}/ThirdPartyLibraries/android-ndk/build/CMake/android.toolchain.cmake"
         ABSOLUTE)
+      if(NOT EXISTS "${_GEN_PRE_NDK_TOOLCHAIN}")
+        # Official NDK on Linux uses build/cmake (lowercase); InstallAndroid.bash may symlink CMake.
+        get_filename_component(_GEN_PRE_NDK_TOOLCHAIN
+          "${GEN_DIRECTORY}/ThirdPartyLibraries/android-ndk/build/cmake/android.toolchain.cmake"
+          ABSOLUTE)
+      endif()
       if(EXISTS "${_GEN_PRE_NDK_TOOLCHAIN}")
         set(CMAKE_TOOLCHAIN_FILE "${_GEN_PRE_NDK_TOOLCHAIN}" CACHE FILEPATH "Android NDK toolchain" FORCE)
         message(STATUS "[ GEN PreProject ] Android CMAKE_TOOLCHAIN_FILE → ${CMAKE_TOOLCHAIN_FILE}")
       else()
-        message(STATUS "[ GEN PreProject ] Android: NDK toolchain not found at ${_GEN_PRE_NDK_TOOLCHAIN} (pass CMAKE_TOOLCHAIN_FILE before project()).")
+        message(STATUS "[ GEN PreProject ] Android: NDK toolchain not found under android-ndk/build/CMake or build/cmake (pass CMAKE_TOOLCHAIN_FILE before project()).")
       endif()
     endif()
   endif()
