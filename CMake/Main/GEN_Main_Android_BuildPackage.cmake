@@ -244,14 +244,24 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
       _gen_android_fail("android.jar was not found:\n  ${_GEN_ANDROID_JAR}")
     endif()
 
+    # Host SDK tools: Windows uses .exe/.bat; Linux uses bare names.
     _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/aapt.exe" _GEN_ANDROID_AAPT)
+    if(_GEN_ANDROID_AAPT STREQUAL "")
+      _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/aapt" _GEN_ANDROID_AAPT)
+    endif()
     if(_GEN_ANDROID_AAPT STREQUAL "")
       _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/aapt2.exe" _GEN_ANDROID_AAPT)
     endif()
+    if(_GEN_ANDROID_AAPT STREQUAL "")
+      _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/aapt2" _GEN_ANDROID_AAPT)
+    endif()
 
     _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/zipalign.exe" _GEN_ANDROID_ZIPALIGN)
-    _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/apksigner.bat" _GEN_ANDROID_APKSIGNER)
+    if(_GEN_ANDROID_ZIPALIGN STREQUAL "")
+      _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/zipalign" _GEN_ANDROID_ZIPALIGN)
+    endif()
 
+    _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/apksigner.bat" _GEN_ANDROID_APKSIGNER)
     if(_GEN_ANDROID_APKSIGNER STREQUAL "")
       _gen_android_find_newest("${_GEN_ANDROID_REAL_SDK_ROOT}/build-tools" "*/apksigner" _GEN_ANDROID_APKSIGNER)
     endif()
@@ -389,10 +399,24 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
     endif()
 
     if(NOT _GEN_ANDROID_NDK_TRIPLE STREQUAL "")
+      # Prefer the NDK prebuilt matching the compile host (only one flavor is installed).
+      set(_GEN_ANDROID_HOST_PREBUILT_TAG "")
+      if(CMAKE_HOST_WIN32)
+        set(_GEN_ANDROID_HOST_PREBUILT_TAG "windows-x86_64")
+      elseif(CMAKE_HOST_APPLE)
+        set(_GEN_ANDROID_HOST_PREBUILT_TAG "darwin-x86_64")
+      else()
+        set(_GEN_ANDROID_HOST_PREBUILT_TAG "linux-x86_64")
+      endif()
+
       set(_GEN_ANDROID_LIBCPP_CANDIDATES
+        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${_GEN_ANDROID_HOST_PREBUILT_TAG}/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/libc++_shared.so"
+        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${_GEN_ANDROID_HOST_PREBUILT_TAG}/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/${GEN_ANDROID_MIN_SDK_CLEAN}/libc++_shared.so"
+        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${_GEN_ANDROID_HOST_PREBUILT_TAG}/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/${GEN_ANDROID_TARGET_SDK_CLEAN}/libc++_shared.so"
         "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/libc++_shared.so"
         "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/${GEN_ANDROID_MIN_SDK_CLEAN}/libc++_shared.so"
-        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/${GEN_ANDROID_TARGET_SDK_CLEAN}/libc++_shared.so"
+        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/libc++_shared.so"
+        "${_GEN_ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${_GEN_ANDROID_NDK_TRIPLE}/${GEN_ANDROID_MIN_SDK_CLEAN}/libc++_shared.so"
       )
 
       foreach(_GEN_ANDROID_CANDIDATE IN LISTS _GEN_ANDROID_LIBCPP_CANDIDATES)
@@ -470,41 +494,67 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
       _gen_android_fail("aapt package failed")
     endif()
 
-    set(_GEN_ANDROID_MERGE_PS1 "${_GEN_ANDROID_WORK_DIR}/merge_payload.ps1")
+    # Merge lib/ and assets/ into the unaligned APK.
+    # Windows host: PowerShell ZipArchive (historical path).
+    # Linux/other host: Python zipfile (do not pick Windows powershell via WSL interop).
+    set(_GEN_ANDROID_POWERSHELL_EXECUTABLE "")
+    if(CMAKE_HOST_WIN32)
+      find_program(_GEN_ANDROID_POWERSHELL_EXECUTABLE NAMES powershell pwsh)
+    endif()
+    set(_GEN_ANDROID_MERGE_RESULT 1)
+    set(_GEN_ANDROID_MERGE_OUTPUT "")
+    set(_GEN_ANDROID_MERGE_ERROR "")
 
-    file(WRITE  "${_GEN_ANDROID_MERGE_PS1}" "Add-Type -AssemblyName System.IO.Compression\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "Add-Type -AssemblyName System.IO.Compression.FileSystem\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$apk = [System.IO.Path]::GetFullPath('${_GEN_ANDROID_UNALIGNED_APK}')\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$pkg = [System.IO.Path]::GetFullPath('${_GEN_ANDROID_PACKAGE_DIR}')\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$zip = [System.IO.Compression.ZipFile]::Open($apk, [System.IO.Compression.ZipArchiveMode]::Update)\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "try {\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $pkgRoot = [System.IO.Path]::GetFullPath($pkg)\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $pkgRootWithSep = $pkgRoot\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(-not $pkgRootWithSep.EndsWith([System.IO.Path]::DirectorySeparatorChar)) { $pkgRootWithSep += [System.IO.Path]::DirectorySeparatorChar }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $entries = @()\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(Test-Path (Join-Path $pkg 'lib')) { $entries += Get-ChildItem -Path (Join-Path $pkg 'lib') -Recurse -File }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(Test-Path (Join-Path $pkg 'assets')) { $entries += Get-ChildItem -Path (Join-Path $pkg 'assets') -Recurse -File }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  foreach($f in $entries) {\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $full = [System.IO.Path]::GetFullPath($f.FullName)\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if(-not $full.StartsWith($pkgRootWithSep)) { throw 'Entry outside the package directory: ' + $full }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $rel = $full.Substring($pkgRootWithSep.Length).Replace('\\','/')\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $existing = $zip.GetEntry($rel)\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if($existing -ne $null) { $existing.Delete() }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $level = [System.IO.Compression.CompressionLevel]::Optimal\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if($rel.StartsWith('lib/')) { $level = [System.IO.Compression.CompressionLevel]::NoCompression }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $full, $rel, $level) | Out-Null\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  }\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "}\n")
-    file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "finally { if($zip -ne $null) { $zip.Dispose() } }\n")
+    if(_GEN_ANDROID_POWERSHELL_EXECUTABLE)
+      set(_GEN_ANDROID_MERGE_PS1 "${_GEN_ANDROID_WORK_DIR}/merge_payload.ps1")
 
-    find_program(_GEN_ANDROID_POWERSHELL_EXECUTABLE NAMES powershell pwsh REQUIRED)
+      file(WRITE  "${_GEN_ANDROID_MERGE_PS1}" "Add-Type -AssemblyName System.IO.Compression\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "Add-Type -AssemblyName System.IO.Compression.FileSystem\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$apk = [System.IO.Path]::GetFullPath('${_GEN_ANDROID_UNALIGNED_APK}')\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$pkg = [System.IO.Path]::GetFullPath('${_GEN_ANDROID_PACKAGE_DIR}')\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "$zip = [System.IO.Compression.ZipFile]::Open($apk, [System.IO.Compression.ZipArchiveMode]::Update)\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "try {\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $pkgRoot = [System.IO.Path]::GetFullPath($pkg)\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $pkgRootWithSep = $pkgRoot\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(-not $pkgRootWithSep.EndsWith([System.IO.Path]::DirectorySeparatorChar)) { $pkgRootWithSep += [System.IO.Path]::DirectorySeparatorChar }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  $entries = @()\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(Test-Path (Join-Path $pkg 'lib')) { $entries += Get-ChildItem -Path (Join-Path $pkg 'lib') -Recurse -File }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  if(Test-Path (Join-Path $pkg 'assets')) { $entries += Get-ChildItem -Path (Join-Path $pkg 'assets') -Recurse -File }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  foreach($f in $entries) {\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $full = [System.IO.Path]::GetFullPath($f.FullName)\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if(-not $full.StartsWith($pkgRootWithSep)) { throw 'Entry outside the package directory: ' + $full }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $rel = $full.Substring($pkgRootWithSep.Length).Replace('\\','/')\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $existing = $zip.GetEntry($rel)\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if($existing -ne $null) { $existing.Delete() }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    $level = [System.IO.Compression.CompressionLevel]::Optimal\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    if($rel.StartsWith('lib/')) { $level = [System.IO.Compression.CompressionLevel]::NoCompression }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $full, $rel, $level) | Out-Null\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "  }\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "}\n")
+      file(APPEND "${_GEN_ANDROID_MERGE_PS1}" "finally { if($zip -ne $null) { $zip.Dispose() } }\n")
 
-    execute_process(
-      COMMAND "${_GEN_ANDROID_POWERSHELL_EXECUTABLE}" -NoProfile -ExecutionPolicy Bypass -File "${_GEN_ANDROID_MERGE_PS1}"
-      RESULT_VARIABLE _GEN_ANDROID_MERGE_RESULT
-      OUTPUT_VARIABLE _GEN_ANDROID_MERGE_OUTPUT
-      ERROR_VARIABLE  _GEN_ANDROID_MERGE_ERROR
-    )
+      execute_process(
+        COMMAND "${_GEN_ANDROID_POWERSHELL_EXECUTABLE}" -NoProfile -ExecutionPolicy Bypass -File "${_GEN_ANDROID_MERGE_PS1}"
+        RESULT_VARIABLE _GEN_ANDROID_MERGE_RESULT
+        OUTPUT_VARIABLE _GEN_ANDROID_MERGE_OUTPUT
+        ERROR_VARIABLE  _GEN_ANDROID_MERGE_ERROR
+      )
+    else()
+      find_program(_GEN_ANDROID_PYTHON_EXECUTABLE NAMES python3 python REQUIRED)
+      get_filename_component(_GEN_ANDROID_MERGE_PY
+        "${CMAKE_CURRENT_LIST_DIR}/../../Scripts/android/merge_apk_payload.py"
+        ABSOLUTE)
+      if(NOT EXISTS "${_GEN_ANDROID_MERGE_PY}")
+        _gen_android_fail("merge_apk_payload.py not found: ${_GEN_ANDROID_MERGE_PY}")
+      endif()
+
+      execute_process(
+        COMMAND "${_GEN_ANDROID_PYTHON_EXECUTABLE}" "${_GEN_ANDROID_MERGE_PY}" "${_GEN_ANDROID_UNALIGNED_APK}" "${_GEN_ANDROID_PACKAGE_DIR}"
+        RESULT_VARIABLE _GEN_ANDROID_MERGE_RESULT
+        OUTPUT_VARIABLE _GEN_ANDROID_MERGE_OUTPUT
+        ERROR_VARIABLE  _GEN_ANDROID_MERGE_ERROR
+      )
+    endif()
 
     if(NOT _GEN_ANDROID_MERGE_RESULT EQUAL 0)
       message(STATUS "${_GEN_ANDROID_MERGE_OUTPUT}")
