@@ -8,7 +8,7 @@ rem Installs the Android development environment expected by GEN into:
 rem   ThirdPartyLibraries\android-sdk
 rem   ThirdPartyLibraries\android-ndk
 rem
-rem The package/version set is shared with InstallAndroid.bash through
+rem The package/version set is shared with InstallAndroidNDK-SDK.bash through
 rem AndroidPackages.cfg.
 rem -----------------------------------------------------------------------------
 
@@ -311,7 +311,7 @@ exit /b 1
 echo GEN Framework Android environment installer ^(Windows^)
 echo.
 echo Usage:
-echo   InstallAndroid.bat [options]
+echo   InstallAndroidNDK-SDK.bat [options]
 echo.
 echo Options:
 echo   --check       Validate the current SDK/NDK installation; do not download.

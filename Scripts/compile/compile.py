@@ -171,7 +171,7 @@ def android_sdk_ndk_not_ready_message(requested_platform: str, repo_root: Path |
         f'compile host is {compile_host} (needs NDK prebuilt/{expected_tag} and matching SDK build-tools); '
         f'installed: {installed}. '
         f'Only one SDK/NDK host flavor can live in ThirdPartyLibraries; '
-        f'install the {compile_host} packages (InstallAndroid.bat / InstallAndroid.bash --force) '
+        f'install the {compile_host} packages (InstallAndroidNDK-SDK.bat / InstallAndroidNDK-SDK.bash --force) '
         f'or compile on a host that matches the installed flavor.'
     )
 

@@ -542,7 +542,7 @@ if(NOT DEFINED _GEN_ANDROID_BUILD_PACKAGE_FUNCTIONS_DEFINED)
     else()
       find_program(_GEN_ANDROID_PYTHON_EXECUTABLE NAMES python3 python REQUIRED)
       get_filename_component(_GEN_ANDROID_MERGE_PY
-        "${CMAKE_CURRENT_LIST_DIR}/../../Scripts/android/merge_apk_payload.py"
+        "${CMAKE_CURRENT_LIST_DIR}/../../Scripts/android_ndk-sdk/merge_apk_payload.py"
         ABSOLUTE)
       if(NOT EXISTS "${_GEN_ANDROID_MERGE_PY}")
         _gen_android_fail("merge_apk_payload.py not found: ${_GEN_ANDROID_MERGE_PY}")
