@@ -123,7 +123,7 @@ if(_GEN_PRE_IS_ANDROID)
         "${GEN_DIRECTORY}/ThirdPartyLibraries/android-ndk/build/CMake/android.toolchain.cmake"
         ABSOLUTE)
       if(NOT EXISTS "${_GEN_PRE_NDK_TOOLCHAIN}")
-        # Official NDK on Linux uses build/cmake (lowercase); InstallAndroid.bash may symlink CMake.
+        # Official NDK on Linux uses build/cmake (lowercase); InstallAndroidNDK-SDK.bash may symlink CMake.
         get_filename_component(_GEN_PRE_NDK_TOOLCHAIN
           "${GEN_DIRECTORY}/ThirdPartyLibraries/android-ndk/build/cmake/android.toolchain.cmake"
           ABSOLUTE)

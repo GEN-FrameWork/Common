@@ -28,7 +28,6 @@ from internal.shared import (
     format_elapsed,
     load_listapp,
     platform_lower,
-    resolve_projects_root,
     run_command,
     select_app_entries,
     start_keyboard_cancel_monitor,
@@ -171,7 +170,7 @@ def android_sdk_ndk_not_ready_message(requested_platform: str, repo_root: Path |
         f'compile host is {compile_host} (needs NDK prebuilt/{expected_tag} and matching SDK build-tools); '
         f'installed: {installed}. '
         f'Only one SDK/NDK host flavor can live in ThirdPartyLibraries; '
-        f'install the {compile_host} packages (InstallAndroid.bat / InstallAndroid.bash --force) '
+        f'install the {compile_host} packages (InstallAndroidNDK-SDK.bat / InstallAndroidNDK-SDK.bash --force) '
         f'or compile on a host that matches the installed flavor.'
     )
 
@@ -744,8 +743,9 @@ def filter_docker_arguments(arguments: list[str]) -> list[str]:
 def run_docker_compile(script_directory: Path, common_root: Path, platform_name: str, arguments: list[str], settings: dict[str, str]) -> tuple[int, list[str], list[str]]:
     docker_directory = find_docker_directory(common_root)
     dockerfile_path = docker_directory / 'dockerfile_build'
-    repo_root = common_root.parent
-    projects_root = resolve_projects_root(common_root)
+    # Framework root (Common's parent). Mounted in the container at the same
+    # absolute path so DOCKERDOMAIN (host compile dir) is valid inside too.
+    repo_root = common_root.parent.resolve()
     image_name = f'gen_compiler_image_{platform_name.lower()}'
     container_name = f'gen_compiler_container_{platform_name.lower()}'
     build_command = [
@@ -790,7 +790,7 @@ def run_docker_compile(script_directory: Path, common_root: Path, platform_name:
         '-e', f'DOCKERDOMAIN={settings["DOCKERDOMAIN"]}',
         '-e', 'SCRIPTHEADER=true',
         '--tmpfs', '/build:rw,noexec,nosuid,size=16g',
-        '-v', f'{projects_root}:/Projects',
+        '-v', f'{repo_root}:{repo_root}',
         '-v', '/root/.cache/:/root/.cache/',
         image_name,
         *arguments,

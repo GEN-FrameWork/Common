@@ -24,6 +24,21 @@ PLATFORM_PATH_BY_TARGET = {
 }
 
 
+def default_docker_domain() -> str:
+    """Absolute compile-dir path used as DOCKERDOMAIN inside/outside the container.
+
+    Equivalent to:
+      REPO_ROOT="$(cd "$(dirname ...)/../../.." && pwd)"
+      DOCKERDOMAIN="$REPO_ROOT/Common/Scripts/compile"
+
+    The repo is mounted in the container at the same absolute host path, so
+    DOCKERDOMAIN must be that real path (not a hardcoded /Projects/GEN_FrameWork/...).
+    """
+    # defaultenv.py lives in <repo>/Common/Scripts/compile/
+    compile_dir = Path(__file__).resolve().parent
+    return f'{compile_dir}{os.sep}'
+
+
 def build_default_settings(current_directory: Path, environment: Mapping[str, str] | None = None) -> dict[str, str]:
     environment = dict(environment or {})
     current_directory = current_directory.resolve()
@@ -37,11 +52,11 @@ def build_default_settings(current_directory: Path, environment: Mapping[str, st
         'FEEDBACK_EXTCFG': environment.get('FEEDBACK_EXTCFG') or 'NONE',
         'COVERAGE_CREATEINFO_EXTERNAL_CFG': environment.get('COVERAGE_CREATEINFO_EXTERNAL_CFG') or 'NONE',
         'IMAGEBASE': environment.get('IMAGEBASE') or 'debian',
-        'PATHLISTAPP': environment.get('PATHLISTAPP') or f'{current_directory}/',
+        'PATHLISTAPP': environment.get('PATHLISTAPP') or f'{current_directory}{os.sep}',
         'LISTAPP': environment.get('LISTAPP') or 'listapp.txt',
         'APPLIST_COMPILE': environment.get('APPLIST_COMPILE') or '',
         'CMAKE_CREATEDOCKERFILE_EXTERNAL_CFG': environment.get('CMAKE_CREATEDOCKERFILE_EXTERNAL_CFG') or ('NOTCREATEDOCKERFILE' if os.name == 'nt' else 'CREATEDOCKERFILE'),
-        'DOCKERDOMAIN': environment.get('DOCKERDOMAIN') or '/Projects/GEN_FrameWork/Common/Scripts/compile/',
+        'DOCKERDOMAIN': environment.get('DOCKERDOMAIN') or default_docker_domain(),
         'SCRIPTHEADER': environment.get('SCRIPTHEADER') or 'false',
         'IN_CONTAINER': environment.get('IN_CONTAINER') or '0',
     }

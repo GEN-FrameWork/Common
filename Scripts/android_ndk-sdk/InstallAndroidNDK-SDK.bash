@@ -6,7 +6,7 @@
 #   ThirdPartyLibraries/android-sdk
 #   ThirdPartyLibraries/android-ndk
 #
-# The package/version set is shared with InstallAndroid.bat through
+# The package/version set is shared with InstallAndroidNDK-SDK.bat through
 # AndroidPackages.cfg.
 # -----------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ usage() {
 GEN Framework Android environment installer (Linux)
 
 Usage:
-  ./InstallAndroid.bash [options]
+  ./InstallAndroidNDK-SDK.bash [options]
 
 Options:
   --check       Validate the current SDK/NDK installation; do not download.
